@@ -5,492 +5,307 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Band Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  :root {
-    --ink: #0e0e0e;
-    --paper: #f5f2ec;
-    --cream: #ede9e0;
-    --accent: #c8401a;
-    --accent2: #2a5c3f;
-    --muted: #7a7568;
-    --border: rgba(14,14,14,0.12);
-    --card: #ffffff;
-    --font-head: 'Syne', sans-serif;
-    --font-body: 'DM Sans', sans-serif;
-  }
+:root {
+  --bg: #0f0f0f;
+  --surface: #1a1a1a;
+  --surface2: #242424;
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.15);
+  --text: #f0ede8;
+  --muted: #888;
+  --accent: #e84a1e;
+  --accent2: #f0b429;
+  --green: #2ecc71;
+  --head: 'Bebas Neue', sans-serif;
+  --body: 'DM Sans', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { font-family: var(--body); background: var(--bg); color: var(--text); overflow-x: hidden; }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+/* SETUP / NAME SCREENS */
+.fullscreen {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  padding: 1.5rem; z-index: 1000;
+}
+.setup-card {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 16px; padding: 2rem; width: 100%; max-width: 420px;
+}
+.setup-card h1 { font-family: var(--head); font-size: 3rem; letter-spacing: .05em; color: var(--accent); margin-bottom: .25rem; }
+.setup-card p { color: var(--muted); font-size: .88rem; line-height: 1.6; margin-bottom: 1.5rem; }
+.setup-card label { display: block; font-size: .7rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: .3rem; margin-top: .9rem; }
+.setup-card input, .setup-card select {
+  width: 100%; padding: .6rem .85rem; background: var(--surface2);
+  border: 1px solid var(--border2); border-radius: 8px;
+  color: var(--text); font-family: var(--body); font-size: .9rem;
+}
+.setup-card input:focus, .setup-card select:focus { outline: none; border-color: var(--accent); }
+.btn-primary {
+  margin-top: 1.4rem; width: 100%; padding: .8rem;
+  background: var(--accent); color: #fff; border: none; border-radius: 8px;
+  font-family: var(--head); font-size: 1.1rem; letter-spacing: .08em;
+  cursor: pointer; transition: opacity .2s;
+}
+.btn-primary:hover { opacity: .85; }
+.err { color: var(--accent); font-size: .8rem; margin-top: .6rem; display: none; }
 
-  body {
-    font-family: var(--font-body);
-    background: var(--paper);
-    color: var(--ink);
-    min-height: 100vh;
-  }
+/* LAYOUT */
+#app { display: none; height: 100vh; display: none; flex-direction: column; }
+#app.visible { display: flex; }
 
-  /* SETUP SCREEN */
-  #setup-screen {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-    background: var(--ink);
-  }
+/* HEADER */
+header {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: .75rem 1.25rem; display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.logo { font-family: var(--head); font-size: 1.6rem; letter-spacing: .08em; color: var(--accent); }
+.band-name { font-size: .7rem; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
+.header-right { display: flex; align-items: center; gap: 10px; }
+.av {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--head); font-size: .8rem; color: #fff; flex-shrink: 0;
+}
+.wa-badge {
+  font-size: .7rem; background: #25d366; color: #000;
+  padding: 3px 8px; border-radius: 999px; font-weight: 500;
+  cursor: pointer; display: none;
+}
 
-  .setup-box {
-    background: var(--paper);
-    border-radius: 16px;
-    padding: 2.5rem;
-    max-width: 480px;
-    width: 100%;
-  }
+/* DASHBOARD GRID */
+#dashboard {
+  flex: 1; overflow-y: auto;
+  padding: 1rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto auto;
+  gap: 1rem;
+  align-content: start;
+}
 
-  .setup-box h1 {
-    font-family: var(--font-head);
-    font-size: 2rem;
-    font-weight: 800;
-    margin-bottom: .25rem;
-  }
+@media (max-width: 680px) {
+  #dashboard { grid-template-columns: 1fr; }
+}
 
-  .setup-box p {
-    color: var(--muted);
-    font-size: .9rem;
-    margin-bottom: 1.5rem;
-    line-height: 1.5;
-  }
+/* PANELS */
+.panel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;
+}
+.panel-head {
+  padding: .75rem 1rem; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+.panel-head h2 { font-family: var(--head); font-size: 1.1rem; letter-spacing: .06em; color: var(--text); }
+.panel-body { padding: .75rem 1rem; flex: 1; overflow-y: auto; max-height: 280px; }
+.panel-body.chat-body { max-height: 240px; }
 
-  .setup-box label {
-    display: block;
-    font-size: .75rem;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: .08em;
-    color: var(--muted);
-    margin-bottom: .4rem;
-    margin-top: 1rem;
-  }
+/* CHAT PANEL — full height in its cell */
+.chat-panel { display: flex; flex-direction: column; }
+.chat-panel .panel-body { flex: 1; }
+.chat-input-row {
+  padding: .6rem .75rem; border-top: 1px solid var(--border);
+  display: flex; gap: 8px;
+}
+.chat-input-row input {
+  flex: 1; background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 999px; padding: .45rem .85rem; color: var(--text);
+  font-family: var(--body); font-size: .85rem;
+}
+.chat-input-row input:focus { outline: none; border-color: var(--accent); }
+.send-btn {
+  width: 34px; height: 34px; border-radius: 50%; background: var(--accent);
+  border: none; color: #fff; cursor: pointer; font-size: .95rem;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
 
-  .setup-box input {
-    width: 100%;
-    padding: .65rem .9rem;
-    border: 1.5px solid var(--border);
-    border-radius: 8px;
-    font-family: var(--font-body);
-    font-size: .9rem;
-    background: #fff;
-    color: var(--ink);
-  }
+/* GIGS */
+.gig-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: .55rem 0; border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.gig-row:last-child { border-bottom: none; }
+.gig-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.gig-info { flex: 1; min-width: 0; }
+.gig-venue { font-size: .88rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gig-date { font-size: .73rem; color: var(--muted); }
+.badge { font-size: .65rem; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; padding: 2px 7px; border-radius: 999px; flex-shrink: 0; }
+.b-green { background: rgba(46,204,113,.15); color: #2ecc71; }
+.b-amber { background: rgba(240,180,41,.15); color: #f0b429; }
+.b-gray  { background: rgba(255,255,255,.07); color: var(--muted); }
+.b-red   { background: rgba(232,74,30,.15); color: var(--accent); }
 
-  .setup-box input:focus { outline: none; border-color: var(--accent); }
+/* SETLISTS */
+.sl-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .55rem 0; border-bottom: 1px solid var(--border); cursor: pointer;
+}
+.sl-row:last-child { border-bottom: none; }
+.sl-name { font-size: .88rem; font-weight: 500; }
+.sl-count { font-size: .73rem; color: var(--muted); }
 
-  .btn-primary {
-    margin-top: 1.5rem;
-    width: 100%;
-    padding: .8rem;
-    background: var(--accent);
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    font-family: var(--font-head);
-    font-size: 1rem;
-    font-weight: 700;
-    cursor: pointer;
-    letter-spacing: .02em;
-    transition: opacity .2s;
-  }
-  .btn-primary:hover { opacity: .88; }
+/* TODOS */
+.todo-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: .5rem 0; border-bottom: 1px solid var(--border);
+}
+.todo-row:last-child { border-bottom: none; }
+.todo-cb {
+  width: 18px; height: 18px; border-radius: 4px;
+  border: 1.5px solid var(--border2); background: transparent;
+  cursor: pointer; flex-shrink: 0; margin-top: 1px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+}
+.todo-cb.done { background: var(--green); border-color: var(--green); }
+.todo-cb.done::after { content: '✓'; font-size: .7rem; color: #fff; }
+.todo-text { flex: 1; font-size: .85rem; line-height: 1.4; }
+.todo-text.done-text { text-decoration: line-through; color: var(--muted); }
+.todo-meta { font-size: .7rem; color: var(--muted); }
+.todo-source { font-size: .65rem; padding: 1px 6px; border-radius: 999px; }
+.src-wa { background: rgba(37,211,102,.15); color: #25d366; }
+.src-ai { background: rgba(240,180,41,.15); color: var(--accent2); }
+.src-manual { background: var(--surface2); color: var(--muted); }
 
-  .err { color: var(--accent); font-size: .83rem; margin-top: .75rem; display: none; }
+/* MESSAGES */
+.msg-item { display: flex; gap: 8px; margin-bottom: .7rem; align-items: flex-end; }
+.msg-item.mine { flex-direction: row-reverse; }
+.msg-av-sm { width: 24px; height: 24px; border-radius: 50%; font-family: var(--head); font-size: .6rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.bubble {
+  max-width: 78%; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 12px 12px 12px 4px; padding: .45rem .75rem;
+  font-size: .82rem; line-height: 1.45; color: var(--text);
+}
+.msg-item.mine .bubble { background: var(--accent); border-color: var(--accent); border-radius: 12px 12px 4px 12px; }
+.msg-sender-name { font-size: .65rem; color: var(--muted); margin-bottom: 2px; }
+.msg-item.mine .msg-sender-name { text-align: right; }
+.bubble-wa { border-left: 2px solid #25d366; }
+.msg-time-sm { font-size: .6rem; color: var(--muted); margin-top: 2px; }
+.msg-item.mine .msg-time-sm { text-align: right; }
 
-  /* APP SHELL */
-  #app { display: none; }
+/* WA PANEL */
+.wa-panel-head { padding: .75rem 1rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.wa-msg-row { padding: .55rem 0; border-bottom: 1px solid var(--border); font-size: .82rem; }
+.wa-msg-row:last-child { border-bottom: none; }
+.wa-from { font-size: .7rem; color: #25d366; font-weight: 500; margin-bottom: 2px; }
+.wa-text { color: var(--text); line-height: 1.4; }
 
-  /* NAME PROMPT */
-  #name-screen {
-    min-height: 100vh;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-    background: var(--ink);
-  }
+/* SMALL BUTTONS */
+.btn-xs {
+  font-size: .7rem; padding: 4px 10px; border-radius: 6px;
+  border: 1px solid var(--border2); background: transparent;
+  color: var(--muted); cursor: pointer; font-family: var(--body);
+  transition: all .15s;
+}
+.btn-xs:hover { border-color: var(--accent); color: var(--accent); }
+.btn-xs.accent { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn-xs.green { background: rgba(46,204,113,.15); border-color: #2ecc71; color: #2ecc71; }
 
-  /* HEADER */
-  header {
-    background: var(--ink);
-    color: #fff;
-    padding: 1rem 1.25rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
+/* MODAL */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.7);
+  display: none; align-items: flex-end; justify-content: center; z-index: 500;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface); border-radius: 16px 16px 0 0;
+  border: 1px solid var(--border2); border-bottom: none;
+  padding: 1.5rem 1.25rem 2rem; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto;
+}
+.modal h3 { font-family: var(--head); font-size: 1.4rem; letter-spacing: .06em; margin-bottom: 1.1rem; }
+.fg { margin-bottom: .8rem; }
+.fg label { display: block; font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: .3rem; }
+.fg input, .fg select, .fg textarea {
+  width: 100%; padding: .55rem .8rem; background: var(--surface2);
+  border: 1px solid var(--border2); border-radius: 8px;
+  color: var(--text); font-family: var(--body); font-size: .88rem;
+}
+.fg input:focus, .fg select:focus, .fg textarea:focus { outline: none; border-color: var(--accent); }
+.fg textarea { resize: vertical; min-height: 65px; }
+.modal-acts { display: flex; gap: 8px; margin-top: 1rem; }
+.modal-acts button { flex: 1; padding: .65rem; border-radius: 8px; font-family: var(--head); font-size: .95rem; letter-spacing: .05em; cursor: pointer; border: none; }
+.modal-acts .cancel { background: var(--surface2); color: var(--muted); }
+.modal-acts .save { background: var(--accent); color: #fff; }
 
-  .header-logo {
-    font-family: var(--font-head);
-    font-size: 1.25rem;
-    font-weight: 800;
-    letter-spacing: -.01em;
-  }
+/* SETLIST DETAIL */
+.setlist-overlay {
+  position: fixed; inset: 0; background: var(--bg);
+  z-index: 400; display: none; flex-direction: column;
+}
+.setlist-overlay.open { display: flex; }
+.sl-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; background: var(--surface); }
+.sl-body { flex: 1; overflow-y: auto; padding: 1rem 1.25rem; max-width: 600px; width: 100%; margin: 0 auto; }
+.song-item { display: flex; align-items: center; gap: 10px; padding: .6rem 0; border-bottom: 1px solid var(--border); }
+.song-item:last-child { border-bottom: none; }
+.song-num { font-size: .7rem; color: var(--muted); width: 20px; text-align: right; }
+.song-title { flex: 1; font-size: .9rem; }
+.song-key { font-size: .72rem; background: var(--surface2); padding: 2px 7px; border-radius: 4px; color: var(--muted); }
 
-  .header-band {
-    font-size: .75rem;
-    color: rgba(255,255,255,.5);
-    margin-top: 1px;
-  }
+/* WA SETUP */
+.wa-setup { background: var(--surface2); border: 1px solid var(--border2); border-radius: 10px; padding: 1rem; font-size: .82rem; line-height: 1.7; color: var(--muted); }
+.wa-setup strong { color: var(--text); }
+.wa-setup code { background: var(--bg); padding: 1px 5px; border-radius: 4px; font-size: .78rem; color: var(--accent2); }
 
-  .header-user {
-    font-size: .8rem;
-    color: rgba(255,255,255,.6);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+.empty { text-align: center; color: var(--muted); padding: 1.5rem .5rem; font-size: .82rem; }
+.loading { text-align: center; color: var(--muted); padding: 1rem; font-size: .78rem; }
 
-  .avatar-sm {
-    width: 30px; height: 30px;
-    border-radius: 50%;
-    background: var(--accent);
-    color: #fff;
-    display: flex; align-items: center; justify-content: center;
-    font-family: var(--font-head);
-    font-size: .7rem;
-    font-weight: 700;
-  }
+/* AI extract button */
+.ai-extract-btn {
+  display: flex; align-items: center; gap: 6px;
+  font-size: .72rem; padding: 4px 10px; border-radius: 6px;
+  border: 1px solid var(--accent2); background: rgba(240,180,41,.08);
+  color: var(--accent2); cursor: pointer; font-family: var(--body);
+  transition: all .15s;
+}
+.ai-extract-btn:hover { background: rgba(240,180,41,.18); }
+.ai-extract-btn .spin { display: none; animation: spin .8s linear infinite; }
+.ai-extract-btn.loading .spin { display: inline; }
+.ai-extract-btn.loading .idle { display: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-  /* NAV */
-  nav {
-    display: flex;
-    border-bottom: 1px solid var(--border);
-    background: #fff;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  nav button {
-    flex: 1;
-    padding: .85rem .5rem;
-    border: none;
-    background: none;
-    font-family: var(--font-head);
-    font-size: .78rem;
-    font-weight: 700;
-    letter-spacing: .05em;
-    text-transform: uppercase;
-    color: var(--muted);
-    cursor: pointer;
-    border-bottom: 2.5px solid transparent;
-    transition: all .15s;
-    white-space: nowrap;
-  }
-
-  nav button.active {
-    color: var(--accent);
-    border-bottom-color: var(--accent);
-  }
-
-  /* SECTIONS */
-  .section { display: none; padding: 1.25rem; max-width: 640px; margin: 0 auto; }
-  .section.active { display: block; }
-
-  .sec-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 1.1rem;
-  }
-
-  .sec-head h2 {
-    font-family: var(--font-head);
-    font-size: 1.4rem;
-    font-weight: 800;
-  }
-
-  /* CARDS */
-  .card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1rem 1.1rem;
-    margin-bottom: .75rem;
-    cursor: pointer;
-    transition: border-color .15s;
-  }
-
-  .card:hover { border-color: rgba(14,14,14,.3); }
-
-  .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-  .card-title { font-family: var(--font-head); font-size: 1rem; font-weight: 700; margin-bottom: .2rem; }
-  .card-sub { font-size: .82rem; color: var(--muted); }
-  .card-meta { margin-top: .65rem; font-size: .78rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 10px; }
-
-  .badge {
-    font-size: .7rem;
-    font-family: var(--font-head);
-    font-weight: 700;
-    letter-spacing: .06em;
-    text-transform: uppercase;
-    padding: 3px 9px;
-    border-radius: 999px;
-    flex-shrink: 0;
-  }
-
-  .badge-green { background: #d4edda; color: #1a5c2e; }
-  .badge-amber { background: #fdefd3; color: #7a4a00; }
-  .badge-gray  { background: #ebebeb; color: #555; }
-  .badge-red   { background: #fde0da; color: #8c1f0a; }
-
-  /* BUTTON */
-  .btn {
-    padding: .5rem 1rem;
-    background: var(--accent);
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    font-family: var(--font-head);
-    font-size: .78rem;
-    font-weight: 700;
-    letter-spacing: .04em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: opacity .15s;
-  }
-  .btn:hover { opacity: .85; }
-  .btn-outline {
-    background: transparent;
-    color: var(--ink);
-    border: 1.5px solid var(--border);
-  }
-  .btn-outline:hover { border-color: var(--ink); }
-  .btn-green { background: var(--accent2); }
-
-  /* MODAL */
-  .modal-overlay {
-    display: none;
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,.55);
-    z-index: 200;
-    align-items: flex-end;
-    justify-content: center;
-  }
-  .modal-overlay.open { display: flex; }
-
-  .modal {
-    background: var(--paper);
-    border-radius: 16px 16px 0 0;
-    padding: 1.5rem 1.25rem 2rem;
-    width: 100%;
-    max-width: 640px;
-    max-height: 90vh;
-    overflow-y: auto;
-  }
-
-  .modal h3 {
-    font-family: var(--font-head);
-    font-size: 1.2rem;
-    font-weight: 800;
-    margin-bottom: 1.25rem;
-  }
-
-  .form-group { margin-bottom: .9rem; }
-  .form-group label { display: block; font-size: .75rem; font-weight: 500; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: .35rem; }
-  .form-group input, .form-group select, .form-group textarea {
-    width: 100%;
-    padding: .6rem .85rem;
-    border: 1.5px solid var(--border);
-    border-radius: 8px;
-    font-family: var(--font-body);
-    font-size: .9rem;
-    background: #fff;
-    color: var(--ink);
-  }
-  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--accent); }
-  .form-group textarea { resize: vertical; min-height: 70px; }
-
-  .modal-actions { display: flex; gap: 8px; margin-top: 1.25rem; }
-  .modal-actions .btn { flex: 1; padding: .7rem; font-size: .85rem; }
-
-  /* SETLIST SONGS */
-  .song-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: .55rem 0;
-    border-bottom: 1px solid var(--border);
-    font-size: .9rem;
-  }
-  .song-row:last-child { border-bottom: none; }
-  .song-num { font-size: .75rem; color: var(--muted); width: 20px; text-align: right; flex-shrink: 0; }
-  .song-name { flex: 1; font-weight: 500; }
-  .song-key { font-size: .75rem; background: var(--cream); padding: 2px 7px; border-radius: 4px; color: var(--muted); }
-  .song-del { background: none; border: none; color: #ccc; cursor: pointer; font-size: 1.1rem; padding: 2px 4px; }
-  .song-del:hover { color: var(--accent); }
-
-  /* CHAT */
-  #chat-section { display: none; flex-direction: column; padding: 0; height: calc(100vh - 120px); max-width: 640px; margin: 0 auto; }
-  #chat-section.active { display: flex; }
-
-  .chat-msgs {
-    flex: 1;
-    overflow-y: auto;
-    padding: 1rem 1.25rem;
-    display: flex;
-    flex-direction: column;
-    gap: .75rem;
-  }
-
-  .msg-wrap { display: flex; gap: 8px; align-items: flex-end; }
-  .msg-wrap.mine { flex-direction: row-reverse; }
-
-  .msg-av {
-    width: 28px; height: 28px;
-    border-radius: 50%;
-    background: var(--cream);
-    display: flex; align-items: center; justify-content: center;
-    font-family: var(--font-head);
-    font-size: .65rem;
-    font-weight: 700;
-    flex-shrink: 0;
-    color: var(--muted);
-  }
-
-  .msg-content { max-width: 75%; }
-  .msg-sender { font-size: .7rem; color: var(--muted); margin-bottom: 2px; padding-left: 4px; }
-  .msg-wrap.mine .msg-sender { text-align: right; padding-right: 4px; }
-
-  .msg-bubble {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 16px 16px 16px 4px;
-    padding: .55rem .9rem;
-    font-size: .88rem;
-    line-height: 1.45;
-  }
-  .msg-wrap.mine .msg-bubble {
-    background: var(--accent);
-    color: #fff;
-    border-color: var(--accent);
-    border-radius: 16px 16px 4px 16px;
-  }
-
-  .msg-time { font-size: .65rem; color: var(--muted); margin-top: 3px; padding-left: 4px; }
-  .msg-wrap.mine .msg-time { text-align: right; padding-right: 4px; }
-
-  .chat-input-bar {
-    padding: .75rem 1rem;
-    background: #fff;
-    border-top: 1px solid var(--border);
-    display: flex;
-    gap: 8px;
-    align-items: flex-end;
-  }
-
-  .chat-input-bar input {
-    flex: 1;
-    padding: .6rem .9rem;
-    border: 1.5px solid var(--border);
-    border-radius: 999px;
-    font-family: var(--font-body);
-    font-size: .9rem;
-    background: var(--paper);
-  }
-  .chat-input-bar input:focus { outline: none; border-color: var(--accent); }
-
-  .chat-send {
-    width: 38px; height: 38px;
-    border-radius: 50%;
-    background: var(--accent);
-    border: none;
-    color: #fff;
-    font-size: 1rem;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-
-  /* MEMBERS */
-  .members-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
-  .member-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1rem .9rem;
-    text-align: center;
-  }
-  .member-av {
-    width: 46px; height: 46px;
-    border-radius: 50%;
-    background: var(--cream);
-    margin: 0 auto .6rem;
-    display: flex; align-items: center; justify-content: center;
-    font-family: var(--font-head);
-    font-size: .85rem;
-    font-weight: 800;
-    color: var(--muted);
-  }
-  .member-name { font-family: var(--font-head); font-size: .9rem; font-weight: 700; }
-  .member-role { font-size: .78rem; color: var(--muted); margin-top: 2px; }
-
-  /* SETLIST DETAIL */
-  .back-btn {
-    background: none;
-    border: none;
-    color: var(--accent);
-    font-family: var(--font-head);
-    font-size: .85rem;
-    font-weight: 700;
-    cursor: pointer;
-    padding: 0;
-    margin-bottom: 1rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .empty-state { text-align: center; color: var(--muted); padding: 2rem 1rem; font-size: .9rem; }
-
-  .loading { text-align: center; color: var(--muted); padding: 2rem; font-size: .85rem; }
-
-  /* Gig detail toggle */
-  .gig-actions { display: flex; gap: 6px; margin-top: .75rem; }
-  .status-btn { font-size: .7rem; padding: 4px 10px; border-radius: 999px; border: 1.5px solid var(--border); background: transparent; cursor: pointer; font-family: var(--font-head); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; transition: all .15s; }
-  .status-btn:hover { background: var(--cream); }
-  .status-btn.active-s { background: var(--ink); color: #fff; border-color: var(--ink); }
+/* scrollbars */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 </style>
 </head>
 <body>
 
-<!-- SETUP SCREEN -->
-<div id="setup-screen">
-  <div class="setup-box">
-    <h1>🎸 Band Hub</h1>
-    <p>First time setup — enter your Supabase details below.<br>You only need to do this once.</p>
+<!-- SETUP -->
+<div class="fullscreen" id="setup-screen">
+  <div class="setup-card">
+    <h1>BAND HUB</h1>
+    <p>Connect your Supabase database to get started. You only do this once.</p>
     <label>Supabase URL</label>
     <input id="sb-url" type="text" placeholder="https://xxxx.supabase.co">
     <label>Supabase Anon Key</label>
     <input id="sb-key" type="text" placeholder="eyJhbGc...">
     <label>Band Name</label>
-    <input id="band-name-input" type="text" placeholder="The Rusty Hammers">
-    <button class="btn-primary" onclick="saveSetup()">Connect &amp; Launch →</button>
-    <div class="err" id="setup-err">Couldn't connect — double check your URL and key.</div>
+    <input id="band-input" type="text" placeholder="The Rusty Hammers">
+    <label>Claude API Key (for AI todo extraction)</label>
+    <input id="claude-key" type="text" placeholder="sk-ant-... (optional)">
+    <button class="btn-primary" onclick="saveSetup()">Launch →</button>
+    <div class="err" id="setup-err"></div>
   </div>
 </div>
 
-<!-- NAME SCREEN -->
-<div id="name-screen">
-  <div class="setup-box">
-    <h1>Who are you?</h1>
-    <p>Just your first name and role — so the band knows who's talking.</p>
+<!-- NAME -->
+<div class="fullscreen" id="name-screen" style="display:none;">
+  <div class="setup-card">
+    <h1>HEY!</h1>
+    <p>Who are you? Just your name and what you play.</p>
     <label>Your name</label>
-    <input id="user-name-input" type="text" placeholder="Jake">
-    <label>Your role / instrument</label>
-    <input id="user-role-input" type="text" placeholder="Drums">
-    <button class="btn-primary" onclick="saveName()">Let's go →</button>
+    <input id="uname" type="text" placeholder="Jake">
+    <label>Instrument / Role</label>
+    <input id="urole" type="text" placeholder="Drums">
+    <button class="btn-primary" onclick="saveName()">I'm in →</button>
   </div>
 </div>
 
@@ -498,66 +313,106 @@
 <div id="app">
   <header>
     <div>
-      <div class="header-logo">Band Hub</div>
-      <div class="header-band" id="header-band">Loading…</div>
+      <div class="logo">BAND HUB</div>
+      <div class="band-name" id="hband"></div>
     </div>
-    <div class="header-user">
-      <span id="header-uname"></span>
-      <div class="avatar-sm" id="header-av">?</div>
+    <div class="header-right">
+      <div class="wa-badge" id="wa-badge" onclick="openWaPanel()">📱 WhatsApp</div>
+      <div class="av" id="hav">?</div>
+      <span style="font-size:.78rem;color:var(--muted);" id="hname"></span>
     </div>
   </header>
 
-  <nav>
-    <button class="active" onclick="showTab('gigs',this)">🎤 Gigs</button>
-    <button onclick="showTab('setlists',this)">📋 Setlists</button>
-    <button onclick="showTab('chat',this)">💬 Chat</button>
-    <button onclick="showTab('members',this)">👥 Band</button>
-  </nav>
+  <div id="dashboard">
 
-  <!-- GIGS -->
-  <div class="section active" id="gigs-section">
-    <div class="sec-head">
-      <h2>Gigs</h2>
-      <button class="btn" onclick="openAddGig()">+ Add Gig</button>
-    </div>
-    <div id="gigs-list"><div class="loading">Loading gigs…</div></div>
-  </div>
-
-  <!-- SETLISTS -->
-  <div class="section" id="setlists-section">
-    <div id="setlists-home">
-      <div class="sec-head">
-        <h2>Setlists</h2>
-        <button class="btn" onclick="openAddSetlist()">+ New</button>
+    <!-- GIGS -->
+    <div class="panel">
+      <div class="panel-head">
+        <h2>🎤 GIGS</h2>
+        <button class="btn-xs accent" onclick="openModal('modal-gig')">+ Add</button>
       </div>
-      <div id="setlists-list"><div class="loading">Loading…</div></div>
+      <div class="panel-body" id="gigs-list"><div class="loading">Loading…</div></div>
     </div>
-    <div id="setlist-detail" style="display:none;padding:1.25rem;">
-      <button class="back-btn" onclick="backToSetlists()">← All setlists</button>
-      <div id="setlist-detail-content"></div>
-    </div>
-  </div>
 
-  <!-- CHAT -->
-  <div class="section" id="chat-section">
-    <div class="chat-msgs" id="chat-msgs"></div>
-    <div class="chat-input-bar">
-      <input type="text" id="chat-input" placeholder="Message the band…" onkeydown="if(event.key==='Enter')sendMsg()">
-      <button class="chat-send" onclick="sendMsg()">➤</button>
+    <!-- CHAT -->
+    <div class="panel chat-panel" style="grid-row: span 2;">
+      <div class="panel-head">
+        <h2>💬 CHAT</h2>
+        <span style="font-size:.7rem;color:var(--muted);" id="chat-online"></span>
+      </div>
+      <div class="panel-body chat-body" id="chat-msgs" style="max-height:none;flex:1;"></div>
+      <div class="chat-input-row">
+        <input type="text" id="chat-in" placeholder="Message the band…" onkeydown="if(event.key==='Enter')sendMsg()">
+        <button class="send-btn" onclick="sendMsg()">➤</button>
+      </div>
     </div>
-  </div>
 
-  <!-- MEMBERS -->
-  <div class="section" id="members-section">
-    <div class="sec-head">
-      <h2>The Band</h2>
-      <button class="btn btn-outline" onclick="openAddMember()">+ Add</button>
+    <!-- SETLISTS -->
+    <div class="panel">
+      <div class="panel-head">
+        <h2>📋 SETLISTS</h2>
+        <button class="btn-xs accent" onclick="openModal('modal-setlist')">+ New</button>
+      </div>
+      <div class="panel-body" id="sl-list"><div class="loading">Loading…</div></div>
     </div>
-    <div id="members-grid" class="members-grid"></div>
-    <div style="margin-top:1.5rem;padding:1rem;background:#fff;border:1px solid var(--border);border-radius:12px;font-size:.82rem;color:var(--muted);line-height:1.6;">
-      <strong style="color:var(--ink);font-family:var(--font-head);">Share this app</strong><br>
-      Send your band the URL of this page. They'll enter the same Supabase URL + key and choose their name.
-      The band name and Supabase details are saved in the browser — no login needed.
+
+    <!-- TODOS — full width -->
+    <div class="panel" style="grid-column: 1 / -1;">
+      <div class="panel-head">
+        <h2>✅ TODOS</h2>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <button class="ai-extract-btn" id="ai-btn" onclick="aiExtract()">
+            <span class="idle">✨ Extract from WhatsApp</span>
+            <span class="spin">⟳</span>
+            <span class="spin" style="display:none;font-size:.7rem;"> thinking…</span>
+          </button>
+          <button class="btn-xs accent" onclick="openModal('modal-todo')">+ Add</button>
+        </div>
+      </div>
+      <div class="panel-body" style="max-height:200px;" id="todos-list"><div class="loading">Loading…</div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- SETLIST DETAIL OVERLAY -->
+<div class="setlist-overlay" id="sl-overlay">
+  <div class="sl-header">
+    <button class="btn-xs" onclick="closeSlOverlay()">← Back</button>
+    <span style="font-family:var(--head);font-size:1.1rem;letter-spacing:.06em;" id="sl-ov-title"></span>
+    <button class="btn-xs accent" onclick="openModal('modal-song')" style="margin-left:auto;">+ Song</button>
+  </div>
+  <div class="sl-body" id="sl-ov-body"></div>
+</div>
+
+<!-- WA PANEL OVERLAY -->
+<div class="setlist-overlay" id="wa-overlay">
+  <div class="sl-header">
+    <button class="btn-xs" onclick="document.getElementById('wa-overlay').classList.remove('open')">← Back</button>
+    <span style="font-family:var(--head);font-size:1.1rem;letter-spacing:.06em;">📱 WHATSAPP</span>
+    <button class="ai-extract-btn" id="ai-btn2" onclick="aiExtract()" style="margin-left:auto;">
+      <span class="idle">✨ Extract Todos</span>
+      <span class="spin">⟳</span>
+    </button>
+  </div>
+  <div class="sl-body">
+    <div class="wa-setup">
+      <strong>How to connect your WhatsApp group:</strong><br><br>
+      1. Go to <strong>callmebot.com/whatsapp-api</strong> and get a free API key<br>
+      2. In your WhatsApp group, add <code>+34 644 59 25 94</code> as a contact<br>
+      3. Send the message: <code>I allow callmebot to send me messages</code><br>
+      4. Use a free tool like <strong>n8n.io</strong> or <strong>make.com</strong> to forward your group messages to this webhook:<br>
+      <code id="webhook-url" style="word-break:break-all;display:block;margin-top:6px;"></code><br>
+      5. Or export your WhatsApp chat (Chat → More → Export) and paste it below ↓<br>
+    </div>
+    <div style="margin-top:1rem;">
+      <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:.4rem;">Paste WhatsApp export text (or messages)</div>
+      <textarea id="wa-paste" style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:.65rem;color:var(--text);font-family:var(--body);font-size:.82rem;min-height:120px;resize:vertical;" placeholder="Paste exported WhatsApp chat here…"></textarea>
+      <button class="btn-xs accent" style="margin-top:.5rem;width:100%;padding:.6rem;" onclick="importWaPaste()">Import messages</button>
+    </div>
+    <div style="margin-top:1.25rem;">
+      <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:.5rem;">Recent WhatsApp messages</div>
+      <div id="wa-msgs-list"><div class="loading">No messages yet.</div></div>
     </div>
   </div>
 </div>
@@ -565,23 +420,18 @@
 <!-- MODAL: ADD GIG -->
 <div class="modal-overlay" id="modal-gig">
   <div class="modal">
-    <h3>Add a gig</h3>
-    <div class="form-group"><label>Venue</label><input id="g-venue" type="text" placeholder="The Half Moon, Putney"></div>
-    <div class="form-group"><label>Date</label><input id="g-date" type="text" placeholder="Sat 14 Jun"></div>
-    <div class="form-group"><label>Time</label><input id="g-time" type="text" placeholder="9pm"></div>
-    <div class="form-group"><label>City / Location</label><input id="g-loc" type="text" placeholder="London"></div>
-    <div class="form-group">
-      <label>Status</label>
-      <select id="g-status">
-        <option value="enquiry">Enquiry</option>
-        <option value="pending">Pending</option>
-        <option value="confirmed">Confirmed</option>
-      </select>
+    <h3>Add Gig</h3>
+    <div class="fg"><label>Venue</label><input id="g-venue" placeholder="The Half Moon, Putney"></div>
+    <div class="fg"><label>Date</label><input id="g-date" placeholder="Sat 14 Jun"></div>
+    <div class="fg"><label>Time</label><input id="g-time" placeholder="9pm"></div>
+    <div class="fg"><label>Location</label><input id="g-loc" placeholder="London"></div>
+    <div class="fg"><label>Status</label>
+      <select id="g-status"><option value="enquiry">Enquiry</option><option value="pending">Pending</option><option value="confirmed">Confirmed</option></select>
     </div>
-    <div class="form-group"><label>Notes</label><textarea id="g-notes" placeholder="Anything else…"></textarea></div>
-    <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeModal('modal-gig')">Cancel</button>
-      <button class="btn" onclick="saveGig()">Save gig</button>
+    <div class="fg"><label>Notes</label><textarea id="g-notes" placeholder="Anything else…"></textarea></div>
+    <div class="modal-acts">
+      <button class="cancel" onclick="closeModal('modal-gig')">Cancel</button>
+      <button class="save" onclick="saveGig()">Save Gig</button>
     </div>
   </div>
 </div>
@@ -589,11 +439,11 @@
 <!-- MODAL: ADD SETLIST -->
 <div class="modal-overlay" id="modal-setlist">
   <div class="modal">
-    <h3>New setlist</h3>
-    <div class="form-group"><label>Setlist name</label><input id="sl-name" type="text" placeholder="Summer Set 2025"></div>
-    <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeModal('modal-setlist')">Cancel</button>
-      <button class="btn" onclick="saveSetlist()">Create</button>
+    <h3>New Setlist</h3>
+    <div class="fg"><label>Name</label><input id="sl-name" placeholder="Summer Set 2025"></div>
+    <div class="modal-acts">
+      <button class="cancel" onclick="closeModal('modal-setlist')">Cancel</button>
+      <button class="save" onclick="saveSetlist()">Create</button>
     </div>
   </div>
 </div>
@@ -601,375 +451,363 @@
 <!-- MODAL: ADD SONG -->
 <div class="modal-overlay" id="modal-song">
   <div class="modal">
-    <h3>Add a song</h3>
-    <div class="form-group"><label>Song title</label><input id="s-title" type="text" placeholder="Mr. Brightside"></div>
-    <div class="form-group"><label>Key (optional)</label><input id="s-key" type="text" placeholder="A"></div>
-    <div class="form-group"><label>Duration (mins)</label><input id="s-dur" type="number" placeholder="4"></div>
-    <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeModal('modal-song')">Cancel</button>
-      <button class="btn" onclick="saveSong()">Add song</button>
+    <h3>Add Song</h3>
+    <div class="fg"><label>Title</label><input id="s-title" placeholder="Mr. Brightside"></div>
+    <div class="fg"><label>Key</label><input id="s-key" placeholder="A"></div>
+    <div class="fg"><label>Duration (mins)</label><input id="s-dur" type="number" placeholder="4"></div>
+    <div class="modal-acts">
+      <button class="cancel" onclick="closeModal('modal-song')">Cancel</button>
+      <button class="save" onclick="saveSong()">Add</button>
     </div>
   </div>
 </div>
 
-<!-- MODAL: ADD MEMBER -->
-<div class="modal-overlay" id="modal-member">
+<!-- MODAL: ADD TODO -->
+<div class="modal-overlay" id="modal-todo">
   <div class="modal">
-    <h3>Add band member</h3>
-    <div class="form-group"><label>Name</label><input id="m-name" type="text" placeholder="Jake"></div>
-    <div class="form-group"><label>Instrument / Role</label><input id="m-role" type="text" placeholder="Drums"></div>
-    <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeModal('modal-member')">Cancel</button>
-      <button class="btn" onclick="saveMember()">Add</button>
+    <h3>Add Todo</h3>
+    <div class="fg"><label>Task</label><input id="t-title" placeholder="Book the van…"></div>
+    <div class="fg"><label>Assign to</label><input id="t-assign" placeholder="Jake"></div>
+    <div class="fg"><label>Due date</label><input id="t-due" placeholder="Before 14 Jun"></div>
+    <div class="modal-acts">
+      <button class="cancel" onclick="closeModal('modal-todo')">Cancel</button>
+      <button class="save" onclick="saveTodo()">Add Todo</button>
     </div>
   </div>
 </div>
 
 <script>
-let sb = null;
-let userName = '';
-let userRole = '';
-let currentSetlistId = null;
-let chatSub = null;
-const COLORS = ['#c8401a','#2a5c3f','#1a3c6e','#7a2d6e','#6e4a00'];
+let sb = null, userName = '', userRole = '', currentSlId = null, chatSub = null, todoSub = null;
+const COLS = ['#e8501e','#2e86ab','#a23b72','#f18f01','#c73e1d','#3b1f2b'];
 
-function initials(name) {
-  return name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
-}
+const ini = n => n.split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2);
+const col = n => { let h=0; for(let c of n) h=c.charCodeAt(0)+((h<<5)-h); return COLS[Math.abs(h)%COLS.length]; };
+const fmt = ts => new Date(ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+const bmap = {confirmed:'b-green',pending:'b-amber',enquiry:'b-gray',cancelled:'b-red'};
+const badge = s => `<span class="badge ${bmap[s]||'b-gray'}">${s}</span>`;
 
-function color(name) {
-  let h = 0; for (let c of name) h = c.charCodeAt(0) + ((h<<5)-h);
-  return COLORS[Math.abs(h) % COLORS.length];
-}
-
-function badgeHtml(status) {
-  const map = { confirmed:'badge-green', pending:'badge-amber', enquiry:'badge-gray', cancelled:'badge-red' };
-  return `<span class="badge ${map[status]||'badge-gray'}">${status}</span>`;
-}
-
-function fmt(ts) {
-  const d = new Date(ts);
-  return d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-}
-
-// ── SETUP ──────────────────────────────────────────────
-function saveSetup() {
+// ── SETUP ────────────────────────────────────────────
+async function saveSetup() {
   const url = document.getElementById('sb-url').value.trim();
   const key = document.getElementById('sb-key').value.trim();
-  const band = document.getElementById('band-name-input').value.trim() || 'My Band';
-  if (!url || !key) { showErr('setup-err','Fill in both fields.'); return; }
-  localStorage.setItem('sb_url', url);
-  localStorage.setItem('sb_key', key);
-  localStorage.setItem('band_name', band);
-  initSupabase(url, key, band);
+  const band = document.getElementById('band-input').value.trim() || 'My Band';
+  const ck = document.getElementById('claude-key').value.trim();
+  if (!url||!key) { showErr('Fill in URL and key.'); return; }
+  localStorage.setItem('sb_url',url); localStorage.setItem('sb_key',key);
+  localStorage.setItem('band_name',band);
+  if (ck) localStorage.setItem('claude_key',ck);
+  await boot(url,key,band);
 }
+function showErr(m) { const e=document.getElementById('setup-err'); e.textContent=m; e.style.display='block'; }
 
-function showErr(id, msg) {
-  const el = document.getElementById(id);
-  el.textContent = msg;
-  el.style.display = 'block';
-}
-
-async function initSupabase(url, key, band) {
+async function boot(url,key,band) {
   try {
-    sb = supabase.createClient(url, key);
+    sb = supabase.createClient(url,key);
     const {error} = await sb.from('gigs').select('id').limit(1);
-    if (error) { showErr('setup-err', 'Connection failed: ' + error.message); return; }
-    document.getElementById('setup-screen').style.display = 'none';
-    document.getElementById('header-band').textContent = band;
+    if (error) { showErr('Connection failed: '+error.message); return; }
+    document.getElementById('setup-screen').style.display='none';
+    document.getElementById('hband').textContent = band.toUpperCase();
+    document.getElementById('webhook-url').textContent = url.replace('https://','https://').split('.')[0]+' → use your Supabase REST API to POST to /todos';
     checkName();
-  } catch(e) {
-    showErr('setup-err', 'Could not connect. Check your URL and key.');
-  }
+  } catch(e) { showErr('Could not connect — check your URL and key.'); }
 }
 
 function checkName() {
-  userName = localStorage.getItem('user_name') || '';
-  userRole = localStorage.getItem('user_role') || '';
-  if (!userName) {
-    document.getElementById('name-screen').style.display = 'flex';
-  } else {
-    launchApp();
-  }
+  userName = localStorage.getItem('user_name')||'';
+  userRole = localStorage.getItem('user_role')||'';
+  if (!userName) { document.getElementById('name-screen').style.display='flex'; }
+  else launchApp();
 }
 
 function saveName() {
-  const n = document.getElementById('user-name-input').value.trim();
-  const r = document.getElementById('user-role-input').value.trim();
+  const n=document.getElementById('uname').value.trim();
+  const r=document.getElementById('urole').value.trim();
   if (!n) return;
-  localStorage.setItem('user_name', n);
-  localStorage.setItem('user_role', r);
-  userName = n; userRole = r;
-  document.getElementById('name-screen').style.display = 'none';
+  localStorage.setItem('user_name',n); localStorage.setItem('user_role',r);
+  userName=n; userRole=r;
+  document.getElementById('name-screen').style.display='none';
   launchApp();
 }
 
 function launchApp() {
-  document.getElementById('app').style.display = 'block';
-  const av = document.getElementById('header-av');
-  av.textContent = initials(userName);
-  av.style.background = color(userName);
-  document.getElementById('header-uname').textContent = userName + (userRole ? ' · '+userRole : '');
-  loadGigs();
-  loadMembers();
+  const app = document.getElementById('app');
+  app.style.display='flex'; app.classList.add('visible');
+  const av=document.getElementById('hav');
+  av.textContent=ini(userName); av.style.background=col(userName);
+  document.getElementById('hname').textContent=userName+(userRole?' · '+userRole:'');
+  loadGigs(); loadSetlists(); loadTodos(); initChat(); loadWaMsgs();
+  if (localStorage.getItem('claude_key')) {
+    document.querySelectorAll('.ai-extract-btn').forEach(b=>b.style.display='flex');
+  }
 }
 
-// ── TABS ───────────────────────────────────────────────
-function showTab(id, btn) {
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
-  document.getElementById(id+'-section').classList.add('active');
-  btn.classList.add('active');
-  if (id === 'gigs') loadGigs();
-  if (id === 'setlists') loadSetlists();
-  if (id === 'chat') initChat();
-  if (id === 'members') loadMembers();
-}
-
-// ── GIGS ───────────────────────────────────────────────
+// ── GIGS ─────────────────────────────────────────────
 async function loadGigs() {
-  const el = document.getElementById('gigs-list');
-  const {data, error} = await sb.from('gigs').select('*').order('created_at', {ascending:true});
-  if (error) { el.innerHTML = '<div class="empty-state">Error loading gigs.</div>'; return; }
-  if (!data.length) { el.innerHTML = '<div class="empty-state">No gigs yet — add your first one!</div>'; return; }
-  el.innerHTML = data.map(g => `
-    <div class="card" onclick="toggleGigActions('ga-${g.id}')">
-      <div class="card-top">
-        <div>
-          <div class="card-title">${g.venue}</div>
-          <div class="card-sub">📅 ${g.date}${g.time?' · '+g.time:''}</div>
-        </div>
-        ${badgeHtml(g.status)}
+  const {data} = await sb.from('gigs').select('*').order('created_at');
+  const el=document.getElementById('gigs-list');
+  if (!data?.length) { el.innerHTML='<div class="empty">No gigs yet</div>'; return; }
+  el.innerHTML = data.map(g=>`
+    <div class="gig-row" onclick="cycleGigStatus('${g.id}','${g.status}')">
+      <div class="gig-dot" style="background:${g.status==='confirmed'?'#2ecc71':g.status==='pending'?'#f0b429':'#555'}"></div>
+      <div class="gig-info">
+        <div class="gig-venue">${g.venue}</div>
+        <div class="gig-date">${g.date}${g.time?' · '+g.time:''}</div>
       </div>
-      ${g.location ? `<div class="card-meta">📍 ${g.location}</div>` : ''}
-      ${g.notes ? `<div class="card-meta" style="color:var(--muted);font-size:.78rem;margin-top:.4rem;">${g.notes}</div>` : ''}
-      <div class="gig-actions" id="ga-${g.id}" style="display:none;">
-        <button class="status-btn ${g.status==='enquiry'?'active-s':''}" onclick="setGigStatus(event,'${g.id}','enquiry')">Enquiry</button>
-        <button class="status-btn ${g.status==='pending'?'active-s':''}" onclick="setGigStatus(event,'${g.id}','pending')">Pending</button>
-        <button class="status-btn ${g.status==='confirmed'?'active-s':''}" onclick="setGigStatus(event,'${g.id}','confirmed')">Confirmed</button>
-        <button class="status-btn" style="color:var(--accent);" onclick="deleteGig(event,'${g.id}')">Delete</button>
-      </div>
+      ${badge(g.status)}
     </div>`).join('');
 }
 
-function toggleGigActions(id) {
-  const el = document.getElementById(id);
-  el.style.display = el.style.display === 'none' ? 'flex' : 'none';
-}
-
-async function setGigStatus(e, id, status) {
-  e.stopPropagation();
-  await sb.from('gigs').update({status}).eq('id', id);
+async function cycleGigStatus(id,current) {
+  const cycle = {enquiry:'pending',pending:'confirmed',confirmed:'enquiry'};
+  await sb.from('gigs').update({status:cycle[current]||'enquiry'}).eq('id',id);
   loadGigs();
-}
-
-async function deleteGig(e, id) {
-  e.stopPropagation();
-  if (!confirm('Delete this gig?')) return;
-  await sb.from('gigs').delete().eq('id', id);
-  loadGigs();
-}
-
-function openAddGig() {
-  ['g-venue','g-date','g-time','g-loc','g-notes'].forEach(i => document.getElementById(i).value='');
-  document.getElementById('g-status').value = 'enquiry';
-  openModal('modal-gig');
 }
 
 async function saveGig() {
-  const venue = document.getElementById('g-venue').value.trim();
-  if (!venue) return alert('Venue is required.');
-  await sb.from('gigs').insert({
-    venue,
-    date: document.getElementById('g-date').value.trim(),
-    time: document.getElementById('g-time').value.trim(),
-    location: document.getElementById('g-loc').value.trim(),
-    status: document.getElementById('g-status').value,
-    notes: document.getElementById('g-notes').value.trim()
-  });
-  closeModal('modal-gig');
-  loadGigs();
+  const v=document.getElementById('g-venue').value.trim();
+  if (!v) return;
+  await sb.from('gigs').insert({venue:v,date:document.getElementById('g-date').value.trim(),time:document.getElementById('g-time').value.trim(),location:document.getElementById('g-loc').value.trim(),status:document.getElementById('g-status').value,notes:document.getElementById('g-notes').value.trim()});
+  closeModal('modal-gig'); loadGigs();
 }
 
-// ── SETLISTS ───────────────────────────────────────────
+// ── SETLISTS ──────────────────────────────────────────
 async function loadSetlists() {
-  const el = document.getElementById('setlists-list');
-  const {data} = await sb.from('setlists').select('*, songs(id)').order('created_at');
-  if (!data || !data.length) { el.innerHTML = '<div class="empty-state">No setlists yet.</div>'; return; }
-  el.innerHTML = data.map(sl => {
-    const count = sl.songs ? sl.songs.length : 0;
-    return `<div class="card" onclick="openSetlist('${sl.id}','${sl.name.replace(/'/g,"\\'")}')">
-      <div class="card-top">
-        <div>
-          <div class="card-title">${sl.name}</div>
-          <div class="card-sub">${count} song${count!==1?'s':''}</div>
-        </div>
-        <span style="font-size:1.2rem;">→</span>
-      </div>
-    </div>`;
-  }).join('');
+  const {data} = await sb.from('setlists').select('*,songs(id)').order('created_at');
+  const el=document.getElementById('sl-list');
+  if (!data?.length) { el.innerHTML='<div class="empty">No setlists yet</div>'; return; }
+  el.innerHTML = data.map(sl=>`
+    <div class="sl-row" onclick="openSlOverlay('${sl.id}','${sl.name.replace(/'/g,"\\'")}')">
+      <div><div class="sl-name">${sl.name}</div><div class="sl-count">${sl.songs?.length||0} songs</div></div>
+      <span style="color:var(--muted);">→</span>
+    </div>`).join('');
 }
 
-async function openSetlist(id, name) {
-  currentSetlistId = id;
-  document.getElementById('setlists-home').style.display = 'none';
-  document.getElementById('setlist-detail').style.display = 'block';
-  document.getElementById('setlist-detail-content').innerHTML = `
-    <div class="sec-head">
-      <h2>${name}</h2>
-      <button class="btn" onclick="openAddSong()">+ Song</button>
-    </div>
-    <div id="song-list"><div class="loading">Loading…</div></div>
-    <div id="setlist-stats" style="margin-top:.75rem;font-size:.8rem;color:var(--muted);"></div>
-  `;
+function openSlOverlay(id,name) {
+  currentSlId=id;
+  document.getElementById('sl-ov-title').textContent=name;
+  document.getElementById('sl-overlay').classList.add('open');
   loadSongs();
 }
+function closeSlOverlay() { document.getElementById('sl-overlay').classList.remove('open'); currentSlId=null; loadSetlists(); }
 
 async function loadSongs() {
-  const {data} = await sb.from('songs').select('*').eq('setlist_id', currentSetlistId).order('position').order('created_at');
-  const el = document.getElementById('song-list');
-  if (!data || !data.length) { el.innerHTML = '<div class="empty-state">No songs yet — add the first one!</div>'; return; }
-  el.innerHTML = data.map((s,i) => `
-    <div class="song-row">
+  const {data} = await sb.from('songs').select('*').eq('setlist_id',currentSlId).order('position').order('created_at');
+  const el=document.getElementById('sl-ov-body');
+  if (!data?.length) { el.innerHTML='<div class="empty">No songs — add the first one!</div>'; return; }
+  const total = data.reduce((a,s)=>a+(s.duration_mins||0),0);
+  el.innerHTML = data.map((s,i)=>`
+    <div class="song-item">
       <span class="song-num">${i+1}</span>
-      <span class="song-name">${s.title}</span>
-      ${s.key ? `<span class="song-key">${s.key}</span>` : ''}
-      ${s.duration_mins ? `<span class="song-key" style="background:transparent;">${s.duration_mins}m</span>` : ''}
-      <button class="song-del" onclick="deleteSong('${s.id}')">✕</button>
-    </div>`).join('');
-  const total = data.reduce((acc,s) => acc + (s.duration_mins||0), 0);
-  document.getElementById('setlist-stats').textContent = `${data.length} songs${total ? ' · ~'+Math.round(total)+' min' : ''}`;
-}
-
-function backToSetlists() {
-  document.getElementById('setlists-home').style.display = 'block';
-  document.getElementById('setlist-detail').style.display = 'none';
-  currentSetlistId = null;
-  loadSetlists();
-}
-
-function openAddSetlist() {
-  document.getElementById('sl-name').value = '';
-  openModal('modal-setlist');
+      <span class="song-title">${s.title}</span>
+      ${s.key?`<span class="song-key">${s.key}`:''}
+      ${s.duration_mins?`<span class="song-key">${s.duration_mins}m</span>`:''}
+      <button onclick="deleteSong('${s.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:0 4px;">✕</button>
+    </div>`).join('')
+    + `<div style="padding:.75rem 0;font-size:.75rem;color:var(--muted);">${data.length} songs${total?' · ~'+Math.round(total)+' min':''}</div>`;
 }
 
 async function saveSetlist() {
-  const name = document.getElementById('sl-name').value.trim();
-  if (!name) return;
-  await sb.from('setlists').insert({name});
-  closeModal('modal-setlist');
-  loadSetlists();
+  const n=document.getElementById('sl-name').value.trim(); if(!n)return;
+  await sb.from('setlists').insert({name:n});
+  closeModal('modal-setlist'); loadSetlists();
 }
 
-function openAddSong() { openModal('modal-song'); }
-
 async function saveSong() {
-  const title = document.getElementById('s-title').value.trim();
-  if (!title) return;
-  await sb.from('songs').insert({
-    setlist_id: currentSetlistId,
-    title,
-    key: document.getElementById('s-key').value.trim(),
-    duration_mins: parseFloat(document.getElementById('s-dur').value) || null
-  });
+  const t=document.getElementById('s-title').value.trim(); if(!t||!currentSlId)return;
+  await sb.from('songs').insert({setlist_id:currentSlId,title:t,key:document.getElementById('s-key').value.trim(),duration_mins:parseFloat(document.getElementById('s-dur').value)||null});
   closeModal('modal-song');
-  ['s-title','s-key','s-dur'].forEach(i => document.getElementById(i).value='');
+  ['s-title','s-key','s-dur'].forEach(i=>document.getElementById(i).value='');
   loadSongs();
 }
 
 async function deleteSong(id) {
-  await sb.from('songs').delete().eq('id', id);
-  loadSongs();
+  await sb.from('songs').delete().eq('id',id); loadSongs();
 }
 
-// ── CHAT ───────────────────────────────────────────────
+// ── TODOS ─────────────────────────────────────────────
+async function loadTodos() {
+  const {data} = await sb.from('todos').select('*').order('created_at',{ascending:false});
+  renderTodos(data||[]);
+}
+
+function renderTodos(data) {
+  const el=document.getElementById('todos-list');
+  if (!data.length) { el.innerHTML='<div class="empty">No todos yet</div>'; return; }
+  const open=data.filter(t=>!t.done), done=data.filter(t=>t.done);
+  const rows = [...open,...done].map(t=>`
+    <div class="todo-row">
+      <div class="todo-cb ${t.done?'done':''}" onclick="toggleTodo('${t.id}',${t.done})"></div>
+      <div style="flex:1;">
+        <div class="todo-text ${t.done?'done-text':''}">${t.title}</div>
+        <div style="display:flex;gap:6px;margin-top:2px;align-items:center;">
+          ${t.assignee?`<span class="todo-meta">👤 ${t.assignee}</span>`:''}
+          ${t.due_date?`<span class="todo-meta">📅 ${t.due_date}</span>`:''}
+          <span class="todo-source ${t.source==='whatsapp'?'src-wa':t.source==='ai'?'src-ai':'src-manual'}">${t.source==='whatsapp'?'WA':t.source==='ai'?'AI':'app'}</span>
+        </div>
+      </div>
+      <button onclick="deleteTodo('${t.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.85rem;">✕</button>
+    </div>`).join('');
+  el.innerHTML = rows;
+}
+
+async function toggleTodo(id,done) {
+  await sb.from('todos').update({done:!done}).eq('id',id); loadTodos();
+}
+async function deleteTodo(id) {
+  await sb.from('todos').delete().eq('id',id); loadTodos();
+}
+async function saveTodo() {
+  const t=document.getElementById('t-title').value.trim(); if(!t)return;
+  await sb.from('todos').insert({title:t,assignee:document.getElementById('t-assign').value.trim(),due_date:document.getElementById('t-due').value.trim(),source:'manual'});
+  closeModal('modal-todo');
+  ['t-title','t-assign','t-due'].forEach(i=>document.getElementById(i).value='');
+  loadTodos();
+}
+
+// Subscribe to real-time todos
+async function subTodos() {
+  sb.channel('todos').on('postgres_changes',{event:'*',schema:'public',table:'todos'},()=>loadTodos()).subscribe();
+}
+
+// ── AI EXTRACT ────────────────────────────────────────
+async function aiExtract() {
+  const ck = localStorage.getItem('claude_key');
+  if (!ck) { alert('Add your Claude API key in setup to use AI extraction.'); return; }
+  const {data:msgs} = await sb.from('wa_messages').select('*').eq('processed',false).limit(30);
+  if (!msgs?.length) { alert('No unprocessed WhatsApp messages to analyse.'); return; }
+  const btn=document.getElementById('ai-btn');
+  const btn2=document.getElementById('ai-btn2');
+  [btn,btn2].forEach(b=>{ if(b){ b.classList.add('loading'); b.disabled=true; }});
+
+  const text = msgs.map(m=>`${m.sender}: ${m.content}`).join('\n');
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':ck,'anthropic-version':'2023-06-01'},
+      body: JSON.stringify({
+        model:'claude-opus-4-5',
+        max_tokens:1000,
+        messages:[{role:'user',content:`You are a band manager assistant. Read these WhatsApp messages and extract any action items, tasks, or todos that the band needs to do. Return ONLY a JSON array like: [{"title":"task text","assignee":"name or empty string","due_date":"date or empty string"}]. If no tasks found return []. Messages:\n\n${text}`}]
+      })
+    });
+    const d = await res.json();
+    const raw = d.content?.[0]?.text||'[]';
+    const clean = raw.replace(/```json|```/g,'').trim();
+    const todos = JSON.parse(clean);
+    if (todos.length) {
+      for (const t of todos) {
+        await sb.from('todos').insert({title:t.title,assignee:t.assignee||null,due_date:t.due_date||null,source:'ai'});
+      }
+      // mark messages processed
+      const ids = msgs.map(m=>m.id);
+      await sb.from('wa_messages').update({processed:true}).in('id',ids);
+      loadTodos();
+      alert(`✨ Found ${todos.length} todo${todos.length>1?'s':''} from your WhatsApp messages!`);
+    } else {
+      alert('No action items found in the messages.');
+    }
+  } catch(e) {
+    alert('AI extraction failed: '+e.message);
+  } finally {
+    [btn,btn2].forEach(b=>{ if(b){ b.classList.remove('loading'); b.disabled=false; }});
+  }
+}
+
+// ── WHATSAPP ──────────────────────────────────────────
+function openWaPanel() {
+  document.getElementById('wa-overlay').classList.add('open');
+  loadWaMsgs();
+}
+
+async function loadWaMsgs() {
+  const {data} = await sb.from('wa_messages').select('*').order('created_at',{ascending:false}).limit(40);
+  const el=document.getElementById('wa-msgs-list');
+  if (!data?.length) { el.innerHTML='<div class="empty">No WhatsApp messages yet.<br>Paste an export below to get started.</div>'; return; }
+  el.innerHTML = data.map(m=>`
+    <div class="wa-msg-row">
+      <div class="wa-from">${m.sender}</div>
+      <div class="wa-text">${m.content}</div>
+    </div>`).join('');
+  document.getElementById('wa-badge').style.display='inline-block';
+}
+
+async function importWaPaste() {
+  const text = document.getElementById('wa-paste').value.trim();
+  if (!text) return;
+  // Parse WhatsApp export format: [DD/MM/YYYY, HH:MM] Name: Message
+  // Also handle plain "Name: message" lines
+  const lines = text.split('\n').filter(l=>l.trim());
+  const parsed = [];
+  for (const line of lines) {
+    // WhatsApp export format
+    const waMatch = line.match(/\[?(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}),?\s*\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM)?\]?\s*[-–]?\s*([^:]+):\s*(.*)/i);
+    if (waMatch) {
+      parsed.push({sender:waMatch[2].trim(),content:waMatch[3].trim(),wa_timestamp:waMatch[1]});
+      continue;
+    }
+    // Simple "Name: message"
+    const simpleMatch = line.match(/^([A-Za-z][^:]{1,30}):\s*(.+)/);
+    if (simpleMatch && !line.startsWith('http')) {
+      parsed.push({sender:simpleMatch[1].trim(),content:simpleMatch[2].trim(),wa_timestamp:null});
+    }
+  }
+  if (!parsed.length) { alert('No messages found — try copying more of the chat export.'); return; }
+  const {error} = await sb.from('wa_messages').insert(parsed);
+  if (error) { alert('Import failed: '+error.message); return; }
+  document.getElementById('wa-paste').value='';
+  alert(`Imported ${parsed.length} messages! Hit "Extract Todos" to find action items.`);
+  loadWaMsgs();
+}
+
+// ── CHAT ──────────────────────────────────────────────
 async function initChat() {
+  await loadMsgs();
   if (chatSub) return;
-  await loadMessages();
-  chatSub = sb.channel('messages')
-    .on('postgres_changes', {event:'INSERT', schema:'public', table:'messages'}, payload => {
-      appendMsg(payload.new);
-    })
+  chatSub = sb.channel('chat_realtime')
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'},p=>appendMsg(p.new))
     .subscribe();
 }
 
-async function loadMessages() {
-  const {data} = await sb.from('messages').select('*').order('created_at', {ascending:true}).limit(100);
-  const el = document.getElementById('chat-msgs');
-  el.innerHTML = '';
-  (data||[]).forEach(m => appendMsg(m, false));
-  el.scrollTop = el.scrollHeight;
+async function loadMsgs() {
+  const {data} = await sb.from('messages').select('*').order('created_at',{ascending:true}).limit(80);
+  const el=document.getElementById('chat-msgs'); el.innerHTML='';
+  (data||[]).forEach(m=>appendMsg(m,false));
+  el.scrollTop=el.scrollHeight;
 }
 
-function appendMsg(m, scroll=true) {
-  const el = document.getElementById('chat-msgs');
-  const mine = m.sender === userName;
-  const c = color(m.sender);
-  const div = document.createElement('div');
-  div.className = 'msg-wrap' + (mine ? ' mine' : '');
-  div.innerHTML = `
-    <div class="msg-av" style="background:${c}20;color:${c};">${initials(m.sender)}</div>
-    <div class="msg-content">
-      ${!mine ? `<div class="msg-sender">${m.sender}</div>` : ''}
-      <div class="msg-bubble">${m.content}</div>
-      <div class="msg-time">${fmt(m.created_at)}</div>
+function appendMsg(m,scroll=true) {
+  const el=document.getElementById('chat-msgs');
+  const mine=m.sender===userName;
+  const c=col(m.sender);
+  const div=document.createElement('div');
+  div.className='msg-item'+(mine?' mine':'');
+  div.innerHTML=`
+    <div class="msg-av-sm" style="background:${c}30;color:${c};">${ini(m.sender)}</div>
+    <div>
+      <div class="msg-sender-name">${mine?'':m.sender}${m.source==='whatsapp'?' 📱':''}</div>
+      <div class="bubble ${m.source==='whatsapp'?'bubble-wa':''}">${m.content}</div>
+      <div class="msg-time-sm">${fmt(m.created_at)}</div>
     </div>`;
   el.appendChild(div);
-  if (scroll) el.scrollTop = el.scrollHeight;
+  if (scroll) el.scrollTop=el.scrollHeight;
 }
 
 async function sendMsg() {
-  const input = document.getElementById('chat-input');
-  const content = input.value.trim();
-  if (!content) return;
-  input.value = '';
-  await sb.from('messages').insert({ sender: userName, content });
+  const inp=document.getElementById('chat-in');
+  const content=inp.value.trim(); if(!content)return;
+  inp.value='';
+  await sb.from('messages').insert({sender:userName,content,source:'app'});
 }
 
-// ── MEMBERS ────────────────────────────────────────────
-async function loadMembers() {
-  const {data} = await sb.from('members').select('*').order('created_at');
-  const el = document.getElementById('members-grid');
-  if (!data || !data.length) { el.innerHTML = '<div class="empty-state">No members yet.</div>'; return; }
-  el.innerHTML = data.map(m => `
-    <div class="member-card">
-      <div class="member-av" style="background:${color(m.name)}20;color:${color(m.name)};">${initials(m.name)}</div>
-      <div class="member-name">${m.name}</div>
-      <div class="member-role">${m.role||''}</div>
-    </div>`).join('');
-}
-
-function openAddMember() {
-  document.getElementById('m-name').value = '';
-  document.getElementById('m-role').value = '';
-  openModal('modal-member');
-}
-
-async function saveMember() {
-  const name = document.getElementById('m-name').value.trim();
-  if (!name) return;
-  await sb.from('members').insert({ name, role: document.getElementById('m-role').value.trim() });
-  closeModal('modal-member');
-  loadMembers();
-}
-
-// ── MODALS ─────────────────────────────────────────────
+// ── MODALS ────────────────────────────────────────────
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-document.querySelectorAll('.modal-overlay').forEach(m => {
-  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
-});
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
 
-// ── BOOT ───────────────────────────────────────────────
-(function boot() {
-  const url = localStorage.getItem('sb_url');
-  const key = localStorage.getItem('sb_key');
-  const band = localStorage.getItem('band_name') || 'My Band';
-  if (url && key) {
-    document.getElementById('setup-screen').style.display = 'none';
-    document.getElementById('header-band').textContent = band;
-    initSupabase(url, key, band);
-  }
+// ── BOOT ──────────────────────────────────────────────
+(function() {
+  const url=localStorage.getItem('sb_url'), key=localStorage.getItem('sb_key'), band=localStorage.getItem('band_name')||'My Band';
+  if (url&&key) { document.getElementById('setup-screen').style.display='none'; boot(url,key,band); }
 })();
 </script>
 </body>
