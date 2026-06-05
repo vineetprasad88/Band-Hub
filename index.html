@@ -7,273 +7,156 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root {
-  --bg: #0f0f0f;
-  --surface: #1a1a1a;
-  --surface2: #242424;
-  --border: rgba(255,255,255,0.08);
-  --border2: rgba(255,255,255,0.15);
-  --text: #f0ede8;
-  --muted: #888;
-  --accent: #e84a1e;
-  --accent2: #f0b429;
-  --green: #2ecc71;
-  --head: 'Bebas Neue', sans-serif;
-  --body: 'DM Sans', sans-serif;
+  --bg:#0f0f0f;--surface:#1a1a1a;--surface2:#242424;--surface3:#2e2e2e;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.15);
+  --text:#f0ede8;--muted:#888;--accent:#e84a1e;--accent2:#f0b429;--green:#2ecc71;
+  --head:'Bebas Neue',sans-serif;--body:'DM Sans',sans-serif;
 }
-* { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; }
-body { font-family: var(--body); background: var(--bg); color: var(--text); overflow-x: hidden; }
-
-/* SETUP / NAME SCREENS */
-.fullscreen {
-  position: fixed; inset: 0; background: var(--bg);
-  display: flex; align-items: center; justify-content: center;
-  padding: 1.5rem; z-index: 1000;
-}
-.setup-card {
-  background: var(--surface); border: 1px solid var(--border2);
-  border-radius: 16px; padding: 2rem; width: 100%; max-width: 420px;
-}
-.setup-card h1 { font-family: var(--head); font-size: 3rem; letter-spacing: .05em; color: var(--accent); margin-bottom: .25rem; }
-.setup-card p { color: var(--muted); font-size: .88rem; line-height: 1.6; margin-bottom: 1.5rem; }
-.setup-card label { display: block; font-size: .7rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: .3rem; margin-top: .9rem; }
-.setup-card input, .setup-card select {
-  width: 100%; padding: .6rem .85rem; background: var(--surface2);
-  border: 1px solid var(--border2); border-radius: 8px;
-  color: var(--text); font-family: var(--body); font-size: .9rem;
-}
-.setup-card input:focus, .setup-card select:focus { outline: none; border-color: var(--accent); }
-.btn-primary {
-  margin-top: 1.4rem; width: 100%; padding: .8rem;
-  background: var(--accent); color: #fff; border: none; border-radius: 8px;
-  font-family: var(--head); font-size: 1.1rem; letter-spacing: .08em;
-  cursor: pointer; transition: opacity .2s;
-}
-.btn-primary:hover { opacity: .85; }
-.err { color: var(--accent); font-size: .8rem; margin-top: .6rem; display: none; }
-
-/* LAYOUT */
-#app { display: none; height: 100vh; display: none; flex-direction: column; }
-#app.visible { display: flex; }
-
-/* HEADER */
-header {
-  background: var(--surface); border-bottom: 1px solid var(--border);
-  padding: .75rem 1.25rem; display: flex; align-items: center; justify-content: space-between;
-  flex-shrink: 0;
-}
-.logo { font-family: var(--head); font-size: 1.6rem; letter-spacing: .08em; color: var(--accent); }
-.band-name { font-size: .7rem; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
-.header-right { display: flex; align-items: center; gap: 10px; }
-.av {
-  width: 32px; height: 32px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--head); font-size: .8rem; color: #fff; flex-shrink: 0;
-}
-.wa-badge {
-  font-size: .7rem; background: #25d366; color: #000;
-  padding: 3px 8px; border-radius: 999px; font-weight: 500;
-  cursor: pointer; display: none;
-}
-
-/* DASHBOARD GRID */
-#dashboard {
-  flex: 1; overflow-y: auto;
-  padding: 1rem;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: auto auto auto;
-  gap: 1rem;
-  align-content: start;
-}
-
-@media (max-width: 680px) {
-  #dashboard { grid-template-columns: 1fr; }
-}
-
-/* PANELS */
-.panel {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;
-}
-.panel-head {
-  padding: .75rem 1rem; border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
-}
-.panel-head h2 { font-family: var(--head); font-size: 1.1rem; letter-spacing: .06em; color: var(--text); }
-.panel-body { padding: .75rem 1rem; flex: 1; overflow-y: auto; max-height: 280px; }
-.panel-body.chat-body { max-height: 240px; }
-
-/* CHAT PANEL — full height in its cell */
-.chat-panel { display: flex; flex-direction: column; }
-.chat-panel .panel-body { flex: 1; }
-.chat-input-row {
-  padding: .6rem .75rem; border-top: 1px solid var(--border);
-  display: flex; gap: 8px;
-}
-.chat-input-row input {
-  flex: 1; background: var(--surface2); border: 1px solid var(--border2);
-  border-radius: 999px; padding: .45rem .85rem; color: var(--text);
-  font-family: var(--body); font-size: .85rem;
-}
-.chat-input-row input:focus { outline: none; border-color: var(--accent); }
-.send-btn {
-  width: 34px; height: 34px; border-radius: 50%; background: var(--accent);
-  border: none; color: #fff; cursor: pointer; font-size: .95rem;
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-
-/* GIGS */
-.gig-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: .55rem 0; border-bottom: 1px solid var(--border);
-  cursor: pointer;
-}
-.gig-row:last-child { border-bottom: none; }
-.gig-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.gig-info { flex: 1; min-width: 0; }
-.gig-venue { font-size: .88rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.gig-date { font-size: .73rem; color: var(--muted); }
-.badge { font-size: .65rem; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; padding: 2px 7px; border-radius: 999px; flex-shrink: 0; }
-.b-green { background: rgba(46,204,113,.15); color: #2ecc71; }
-.b-amber { background: rgba(240,180,41,.15); color: #f0b429; }
-.b-gray  { background: rgba(255,255,255,.07); color: var(--muted); }
-.b-red   { background: rgba(232,74,30,.15); color: var(--accent); }
-
-/* SETLISTS */
-.sl-row {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: .55rem 0; border-bottom: 1px solid var(--border); cursor: pointer;
-}
-.sl-row:last-child { border-bottom: none; }
-.sl-name { font-size: .88rem; font-weight: 500; }
-.sl-count { font-size: .73rem; color: var(--muted); }
-
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{font-family:var(--body);background:var(--bg);color:var(--text);overflow-x:hidden;}
+.fullscreen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:1.5rem;z-index:1000;}
+.setup-card{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:2rem;width:100%;max-width:420px;}
+.setup-card h1{font-family:var(--head);font-size:3rem;letter-spacing:.05em;color:var(--accent);margin-bottom:.25rem;}
+.setup-card p{color:var(--muted);font-size:.88rem;line-height:1.6;margin-bottom:1.5rem;}
+.setup-card label{display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.3rem;margin-top:.9rem;}
+.setup-card input{width:100%;padding:.6rem .85rem;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--body);font-size:.9rem;}
+.setup-card input:focus{outline:none;border-color:var(--accent);}
+.btn-primary{margin-top:1.4rem;width:100%;padding:.8rem;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:var(--head);font-size:1.1rem;letter-spacing:.08em;cursor:pointer;transition:opacity .2s;}
+.btn-primary:hover{opacity:.85;}
+.err{color:var(--accent);font-size:.8rem;margin-top:.6rem;display:none;}
+#app{display:none;height:100vh;flex-direction:column;}
+#app.visible{display:flex;}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:.75rem 1.25rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.logo{font-family:var(--head);font-size:1.6rem;letter-spacing:.08em;color:var(--accent);}
+.band-name{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;}
+.header-right{display:flex;align-items:center;gap:10px;}
+.av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--head);font-size:.8rem;color:#fff;flex-shrink:0;}
+.wa-badge{font-size:.7rem;background:#25d366;color:#000;padding:3px 8px;border-radius:999px;font-weight:500;cursor:pointer;}
+#dashboard{flex:1;overflow-y:auto;padding:1rem;display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-content:start;}
+@media(max-width:680px){#dashboard{grid-template-columns:1fr;}}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;}
+.panel-head{padding:.75rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.panel-head h2{font-family:var(--head);font-size:1.1rem;letter-spacing:.06em;}
+.panel-body{padding:.75rem 1rem;flex:1;overflow-y:auto;max-height:280px;}
+.chat-panel{display:flex;flex-direction:column;}
+.chat-panel .panel-body{flex:1;max-height:none;}
+.chat-input-row{padding:.6rem .75rem;border-top:1px solid var(--border);display:flex;gap:8px;}
+.chat-input-row input{flex:1;background:var(--surface2);border:1px solid var(--border2);border-radius:999px;padding:.45rem .85rem;color:var(--text);font-family:var(--body);font-size:.85rem;}
+.chat-input-row input:focus{outline:none;border-color:var(--accent);}
+.send-btn{width:34px;height:34px;border-radius:50%;background:var(--accent);border:none;color:#fff;cursor:pointer;font-size:.95rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+/* GIG ROWS */
+.gig-row{display:flex;align-items:center;gap:8px;padding:.5rem 0;border-bottom:1px solid var(--border);}
+.gig-row:last-child{border-bottom:none;}
+.gig-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;cursor:pointer;}
+.gig-info{flex:1;min-width:0;cursor:pointer;}
+.gig-venue{font-size:.88rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.gig-date{font-size:.73rem;color:var(--muted);}
+.badge{font-size:.65rem;font-weight:500;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:999px;flex-shrink:0;cursor:pointer;}
+.b-green{background:rgba(46,204,113,.15);color:#2ecc71;}
+.b-amber{background:rgba(240,180,41,.15);color:#f0b429;}
+.b-gray{background:rgba(255,255,255,.07);color:var(--muted);}
+.b-red{background:rgba(232,74,30,.15);color:var(--accent);}
+.del-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.85rem;padding:2px 4px;opacity:0;transition:opacity .15s;flex-shrink:0;}
+.gig-row:hover .del-btn,.sl-row:hover .del-btn{opacity:1;}
+/* SETLIST ROWS */
+.sl-row{display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--border);}
+.sl-row:last-child{border-bottom:none;}
+.sl-info{flex:1;cursor:pointer;}
+.sl-name{font-size:.88rem;font-weight:500;}
+.sl-count{font-size:.73rem;color:var(--muted);}
+.sl-actions{display:flex;align-items:center;gap:4px;}
 /* TODOS */
-.todo-row {
-  display: flex; align-items: flex-start; gap: 10px;
-  padding: .5rem 0; border-bottom: 1px solid var(--border);
-}
-.todo-row:last-child { border-bottom: none; }
-.todo-cb {
-  width: 18px; height: 18px; border-radius: 4px;
-  border: 1.5px solid var(--border2); background: transparent;
-  cursor: pointer; flex-shrink: 0; margin-top: 1px;
-  display: flex; align-items: center; justify-content: center;
-  transition: all .15s;
-}
-.todo-cb.done { background: var(--green); border-color: var(--green); }
-.todo-cb.done::after { content: '✓'; font-size: .7rem; color: #fff; }
-.todo-text { flex: 1; font-size: .85rem; line-height: 1.4; }
-.todo-text.done-text { text-decoration: line-through; color: var(--muted); }
-.todo-meta { font-size: .7rem; color: var(--muted); }
-.todo-source { font-size: .65rem; padding: 1px 6px; border-radius: 999px; }
-.src-wa { background: rgba(37,211,102,.15); color: #25d366; }
-.src-ai { background: rgba(240,180,41,.15); color: var(--accent2); }
-.src-manual { background: var(--surface2); color: var(--muted); }
-
-/* MESSAGES */
-.msg-item { display: flex; gap: 8px; margin-bottom: .7rem; align-items: flex-end; }
-.msg-item.mine { flex-direction: row-reverse; }
-.msg-av-sm { width: 24px; height: 24px; border-radius: 50%; font-family: var(--head); font-size: .6rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.bubble {
-  max-width: 78%; background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 12px 12px 12px 4px; padding: .45rem .75rem;
-  font-size: .82rem; line-height: 1.45; color: var(--text);
-}
-.msg-item.mine .bubble { background: var(--accent); border-color: var(--accent); border-radius: 12px 12px 4px 12px; }
-.msg-sender-name { font-size: .65rem; color: var(--muted); margin-bottom: 2px; }
-.msg-item.mine .msg-sender-name { text-align: right; }
-.bubble-wa { border-left: 2px solid #25d366; }
-.msg-time-sm { font-size: .6rem; color: var(--muted); margin-top: 2px; }
-.msg-item.mine .msg-time-sm { text-align: right; }
-
-/* WA PANEL */
-.wa-panel-head { padding: .75rem 1rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-.wa-msg-row { padding: .55rem 0; border-bottom: 1px solid var(--border); font-size: .82rem; }
-.wa-msg-row:last-child { border-bottom: none; }
-.wa-from { font-size: .7rem; color: #25d366; font-weight: 500; margin-bottom: 2px; }
-.wa-text { color: var(--text); line-height: 1.4; }
-
+.todo-row{display:flex;align-items:flex-start;gap:10px;padding:.5rem 0;border-bottom:1px solid var(--border);}
+.todo-row:last-child{border-bottom:none;}
+.todo-cb{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--border2);background:transparent;cursor:pointer;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.todo-cb.done{background:var(--green);border-color:var(--green);}
+.todo-cb.done::after{content:'✓';font-size:.7rem;color:#fff;}
+.todo-text{flex:1;font-size:.85rem;line-height:1.4;}
+.todo-text.done-text{text-decoration:line-through;color:var(--muted);}
+.todo-meta{font-size:.7rem;color:var(--muted);}
+.todo-source{font-size:.65rem;padding:1px 6px;border-radius:999px;}
+.src-wa{background:rgba(37,211,102,.15);color:#25d366;}
+.src-ai{background:rgba(240,180,41,.15);color:var(--accent2);}
+.src-manual{background:var(--surface2);color:var(--muted);}
+/* CHAT */
+.msg-item{display:flex;gap:8px;margin-bottom:.7rem;align-items:flex-end;}
+.msg-item.mine{flex-direction:row-reverse;}
+.msg-av-sm{width:24px;height:24px;border-radius:50%;font-family:var(--head);font-size:.6rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.bubble{max-width:78%;background:var(--surface2);border:1px solid var(--border);border-radius:12px 12px 12px 4px;padding:.45rem .75rem;font-size:.82rem;line-height:1.45;color:var(--text);}
+.msg-item.mine .bubble{background:var(--accent);border-color:var(--accent);border-radius:12px 12px 4px 12px;}
+.msg-sender-name{font-size:.65rem;color:var(--muted);margin-bottom:2px;}
+.msg-item.mine .msg-sender-name{text-align:right;}
+.msg-time-sm{font-size:.6rem;color:var(--muted);margin-top:2px;}
+.msg-item.mine .msg-time-sm{text-align:right;}
 /* SMALL BUTTONS */
-.btn-xs {
-  font-size: .7rem; padding: 4px 10px; border-radius: 6px;
-  border: 1px solid var(--border2); background: transparent;
-  color: var(--muted); cursor: pointer; font-family: var(--body);
-  transition: all .15s;
-}
-.btn-xs:hover { border-color: var(--accent); color: var(--accent); }
-.btn-xs.accent { background: var(--accent); border-color: var(--accent); color: #fff; }
-.btn-xs.green { background: rgba(46,204,113,.15); border-color: #2ecc71; color: #2ecc71; }
-
+.btn-xs{font-size:.7rem;padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;font-family:var(--body);transition:all .15s;}
+.btn-xs:hover{border-color:var(--accent);color:var(--accent);}
+.btn-xs.accent{background:var(--accent);border-color:var(--accent);color:#fff;}
+/* OVERLAYS */
+.overlay{position:fixed;inset:0;background:var(--bg);z-index:400;display:none;flex-direction:column;}
+.overlay.open{display:flex;}
+.ov-header{padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--surface);flex-shrink:0;}
+.ov-body{flex:1;overflow-y:auto;padding:1rem 1.25rem;max-width:900px;width:100%;margin:0 auto;}
+/* SONG ITEMS */
+.song-item{display:flex;align-items:center;gap:10px;padding:.6rem 0;border-bottom:1px solid var(--border);}
+.song-item:last-child{border-bottom:none;}
+.song-num{font-size:.7rem;color:var(--muted);width:20px;text-align:right;}
+.song-title{flex:1;font-size:.9rem;}
+.song-key{font-size:.72rem;background:var(--surface2);padding:2px 7px;border-radius:4px;color:var(--muted);}
+/* EXCEL TABLE */
+.xl-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:1rem;padding:.75rem;background:var(--surface2);border-radius:8px;}
+.xl-toolbar select,.xl-toolbar input{background:var(--surface3);border:1px solid var(--border2);color:var(--text);font-family:var(--body);font-size:.8rem;padding:4px 8px;border-radius:6px;}
+.xl-toolbar select:focus,.xl-toolbar input:focus{outline:none;border-color:var(--accent);}
+.xl-stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:.75rem;}
+.xl-stat{background:var(--surface2);border-radius:8px;padding:.5rem .85rem;font-size:.78rem;}
+.xl-stat span{color:var(--muted);margin-right:4px;}
+.xl-stat strong{color:var(--accent2);}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:8px;}
+table.xl-tbl{width:100%;border-collapse:collapse;font-size:.82rem;}
+table.xl-tbl th{background:var(--surface2);padding:.5rem .75rem;text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);border-bottom:1px solid var(--border2);white-space:nowrap;cursor:pointer;user-select:none;}
+table.xl-tbl th:hover{color:var(--text);}
+table.xl-tbl td{padding:.5rem .75rem;border-bottom:1px solid var(--border);vertical-align:middle;}
+table.xl-tbl tr:last-child td{border-bottom:none;}
+table.xl-tbl tr:hover td{background:var(--surface2);}
+table.xl-tbl td[contenteditable=true]:focus{outline:1px solid var(--accent);border-radius:3px;}
+.col-sort{font-size:.6rem;margin-left:3px;opacity:.5;}
+.col-sort.active{opacity:1;color:var(--accent2);}
 /* MODAL */
-.modal-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,.7);
-  display: none; align-items: flex-end; justify-content: center; z-index: 500;
-}
-.modal-overlay.open { display: flex; }
-.modal {
-  background: var(--surface); border-radius: 16px 16px 0 0;
-  border: 1px solid var(--border2); border-bottom: none;
-  padding: 1.5rem 1.25rem 2rem; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto;
-}
-.modal h3 { font-family: var(--head); font-size: 1.4rem; letter-spacing: .06em; margin-bottom: 1.1rem; }
-.fg { margin-bottom: .8rem; }
-.fg label { display: block; font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: .3rem; }
-.fg input, .fg select, .fg textarea {
-  width: 100%; padding: .55rem .8rem; background: var(--surface2);
-  border: 1px solid var(--border2); border-radius: 8px;
-  color: var(--text); font-family: var(--body); font-size: .88rem;
-}
-.fg input:focus, .fg select:focus, .fg textarea:focus { outline: none; border-color: var(--accent); }
-.fg textarea { resize: vertical; min-height: 65px; }
-.modal-acts { display: flex; gap: 8px; margin-top: 1rem; }
-.modal-acts button { flex: 1; padding: .65rem; border-radius: 8px; font-family: var(--head); font-size: .95rem; letter-spacing: .05em; cursor: pointer; border: none; }
-.modal-acts .cancel { background: var(--surface2); color: var(--muted); }
-.modal-acts .save { background: var(--accent); color: #fff; }
-
-/* SETLIST DETAIL */
-.setlist-overlay {
-  position: fixed; inset: 0; background: var(--bg);
-  z-index: 400; display: none; flex-direction: column;
-}
-.setlist-overlay.open { display: flex; }
-.sl-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; background: var(--surface); }
-.sl-body { flex: 1; overflow-y: auto; padding: 1rem 1.25rem; max-width: 600px; width: 100%; margin: 0 auto; }
-.song-item { display: flex; align-items: center; gap: 10px; padding: .6rem 0; border-bottom: 1px solid var(--border); }
-.song-item:last-child { border-bottom: none; }
-.song-num { font-size: .7rem; color: var(--muted); width: 20px; text-align: right; }
-.song-title { flex: 1; font-size: .9rem; }
-.song-key { font-size: .72rem; background: var(--surface2); padding: 2px 7px; border-radius: 4px; color: var(--muted); }
-
-/* WA SETUP */
-.wa-setup { background: var(--surface2); border: 1px solid var(--border2); border-radius: 10px; padding: 1rem; font-size: .82rem; line-height: 1.7; color: var(--muted); }
-.wa-setup strong { color: var(--text); }
-.wa-setup code { background: var(--bg); padding: 1px 5px; border-radius: 4px; font-size: .78rem; color: var(--accent2); }
-
-.empty { text-align: center; color: var(--muted); padding: 1.5rem .5rem; font-size: .82rem; }
-.loading { text-align: center; color: var(--muted); padding: 1rem; font-size: .78rem; }
-
-/* AI extract button */
-.ai-extract-btn {
-  display: flex; align-items: center; gap: 6px;
-  font-size: .72rem; padding: 4px 10px; border-radius: 6px;
-  border: 1px solid var(--accent2); background: rgba(240,180,41,.08);
-  color: var(--accent2); cursor: pointer; font-family: var(--body);
-  transition: all .15s;
-}
-.ai-extract-btn:hover { background: rgba(240,180,41,.18); }
-.ai-extract-btn .spin { display: none; animation: spin .8s linear infinite; }
-.ai-extract-btn.loading .spin { display: inline; }
-.ai-extract-btn.loading .idle { display: none; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* scrollbars */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:flex-end;justify-content:center;z-index:500;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border-radius:16px 16px 0 0;border:1px solid var(--border2);border-bottom:none;padding:1.5rem 1.25rem 2rem;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;}
+.modal h3{font-family:var(--head);font-size:1.4rem;letter-spacing:.06em;margin-bottom:1.1rem;}
+.fg{margin-bottom:.8rem;}
+.fg label{display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:.3rem;}
+.fg input,.fg select,.fg textarea{width:100%;padding:.55rem .8rem;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--body);font-size:.88rem;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--accent);}
+.fg textarea{resize:vertical;min-height:65px;}
+.modal-acts{display:flex;gap:8px;margin-top:1rem;}
+.modal-acts button{flex:1;padding:.65rem;border-radius:8px;font-family:var(--head);font-size:.95rem;letter-spacing:.05em;cursor:pointer;border:none;}
+.modal-acts .cancel{background:var(--surface2);color:var(--muted);}
+.modal-acts .save{background:var(--accent);color:#fff;}
+/* WA */
+.wa-setup{background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:1rem;font-size:.82rem;line-height:1.7;color:var(--muted);}
+.wa-setup strong{color:var(--text);}
+.wa-setup code{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:.78rem;color:var(--accent2);}
+.wa-msg-row{padding:.5rem 0;border-bottom:1px solid var(--border);font-size:.82rem;}
+.wa-msg-row:last-child{border-bottom:none;}
+.wa-from{font-size:.7rem;color:#25d366;font-weight:500;margin-bottom:2px;}
+.ai-extract-btn{display:flex;align-items:center;gap:6px;font-size:.72rem;padding:4px 10px;border-radius:6px;border:1px solid var(--accent2);background:rgba(240,180,41,.08);color:var(--accent2);cursor:pointer;font-family:var(--body);transition:all .15s;}
+.ai-extract-btn:hover{background:rgba(240,180,41,.18);}
+.ai-extract-btn .spin{display:none;animation:spin .8s linear infinite;}
+.ai-extract-btn.loading .spin{display:inline;}
+.ai-extract-btn.loading .idle{display:none;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.empty{text-align:center;color:var(--muted);padding:1.5rem .5rem;font-size:.82rem;}
+.loading{text-align:center;color:var(--muted);padding:1rem;font-size:.78rem;}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
 </style>
 </head>
 <body>
@@ -282,15 +165,11 @@ header {
 <div class="fullscreen" id="setup-screen">
   <div class="setup-card">
     <h1>BAND HUB</h1>
-    <p>Connect your Supabase database to get started. You only do this once.</p>
-    <label>Supabase URL</label>
-    <input id="sb-url" type="text" placeholder="https://xxxx.supabase.co">
-    <label>Supabase Anon Key</label>
-    <input id="sb-key" type="text" placeholder="eyJhbGc...">
-    <label>Band Name</label>
-    <input id="band-input" type="text" placeholder="The Rusty Hammers">
-    <label>Claude API Key (for AI todo extraction)</label>
-    <input id="claude-key" type="text" placeholder="sk-ant-... (optional)">
+    <p>Connect your Supabase database. You only do this once.</p>
+    <label>Supabase URL</label><input id="sb-url" placeholder="https://xxxx.supabase.co">
+    <label>Supabase Anon Key</label><input id="sb-key" placeholder="eyJhbGc...">
+    <label>Band Name</label><input id="band-input" placeholder="The Rusty Hammers">
+    <label>Claude API Key (optional — for smarter todo extraction)</label><input id="claude-key" placeholder="sk-ant-...">
     <button class="btn-primary" onclick="saveSetup()">Launch →</button>
     <div class="err" id="setup-err"></div>
   </div>
@@ -300,11 +179,9 @@ header {
 <div class="fullscreen" id="name-screen" style="display:none;">
   <div class="setup-card">
     <h1>HEY!</h1>
-    <p>Who are you? Just your name and what you play.</p>
-    <label>Your name</label>
-    <input id="uname" type="text" placeholder="Jake">
-    <label>Instrument / Role</label>
-    <input id="urole" type="text" placeholder="Drums">
+    <p>Who are you? Name and instrument.</p>
+    <label>Your name</label><input id="uname" placeholder="Jake">
+    <label>Instrument / Role</label><input id="urole" placeholder="Drums">
     <button class="btn-primary" onclick="saveName()">I'm in →</button>
   </div>
 </div>
@@ -312,19 +189,15 @@ header {
 <!-- APP -->
 <div id="app">
   <header>
-    <div>
-      <div class="logo">BAND HUB</div>
-      <div class="band-name" id="hband"></div>
-    </div>
+    <div><div class="logo">BAND HUB</div><div class="band-name" id="hband"></div></div>
     <div class="header-right">
-      <div class="wa-badge" id="wa-badge" onclick="openWaPanel()">📱 WhatsApp</div>
+      <div class="wa-badge" onclick="openOverlay('wa-overlay')">📱 WhatsApp</div>
       <div class="av" id="hav">?</div>
       <span style="font-size:.78rem;color:var(--muted);" id="hname"></span>
     </div>
   </header>
 
   <div id="dashboard">
-
     <!-- GIGS -->
     <div class="panel">
       <div class="panel-head">
@@ -335,12 +208,9 @@ header {
     </div>
 
     <!-- CHAT -->
-    <div class="panel chat-panel" style="grid-row: span 2;">
-      <div class="panel-head">
-        <h2>💬 CHAT</h2>
-        <span style="font-size:.7rem;color:var(--muted);" id="chat-online"></span>
-      </div>
-      <div class="panel-body chat-body" id="chat-msgs" style="max-height:none;flex:1;"></div>
+    <div class="panel chat-panel" style="grid-row:span 2;">
+      <div class="panel-head"><h2>💬 CHAT</h2></div>
+      <div class="panel-body" id="chat-msgs" style="max-height:none;flex:1;"></div>
       <div class="chat-input-row">
         <input type="text" id="chat-in" placeholder="Message the band…" onkeydown="if(event.key==='Enter')sendMsg()">
         <button class="send-btn" onclick="sendMsg()">➤</button>
@@ -351,73 +221,85 @@ header {
     <div class="panel">
       <div class="panel-head">
         <h2>📋 SETLISTS</h2>
-        <button class="btn-xs accent" onclick="openModal('modal-setlist')">+ New</button>
+        <div style="display:flex;gap:5px;">
+          <button class="btn-xs" onclick="triggerXlUpload()" title="Upload Excel setlist">📂 Excel</button>
+          <button class="btn-xs accent" onclick="openModal('modal-setlist')">+ New</button>
+        </div>
       </div>
       <div class="panel-body" id="sl-list"><div class="loading">Loading…</div></div>
     </div>
 
-    <!-- TODOS — full width -->
-    <div class="panel" style="grid-column: 1 / -1;">
+    <!-- TODOS -->
+    <div class="panel" style="grid-column:1/-1;">
       <div class="panel-head">
         <h2>✅ TODOS</h2>
         <div style="display:flex;gap:6px;align-items:center;">
           <button class="ai-extract-btn" id="ai-btn" onclick="aiExtract()">
             <span class="idle">✨ Extract from WhatsApp</span>
             <span class="spin">⟳</span>
-            <span class="spin" style="display:none;font-size:.7rem;"> thinking…</span>
           </button>
           <button class="btn-xs accent" onclick="openModal('modal-todo')">+ Add</button>
         </div>
       </div>
       <div class="panel-body" style="max-height:200px;" id="todos-list"><div class="loading">Loading…</div></div>
     </div>
-
   </div>
 </div>
+
+<input type="file" id="xl-file-input" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleXlUpload(event)">
 
 <!-- SETLIST DETAIL OVERLAY -->
-<div class="setlist-overlay" id="sl-overlay">
-  <div class="sl-header">
-    <button class="btn-xs" onclick="closeSlOverlay()">← Back</button>
+<div class="overlay" id="sl-overlay">
+  <div class="ov-header">
+    <button class="btn-xs" onclick="closeOverlay('sl-overlay')">← Back</button>
     <span style="font-family:var(--head);font-size:1.1rem;letter-spacing:.06em;" id="sl-ov-title"></span>
-    <button class="btn-xs accent" onclick="openModal('modal-song')" style="margin-left:auto;">+ Song</button>
+    <div style="display:flex;gap:6px;margin-left:auto;">
+      <button class="btn-xs" onclick="triggerXlUpload()" title="Replace with Excel">📂</button>
+      <button class="btn-xs accent" onclick="openModal('modal-song')">+ Song</button>
+    </div>
   </div>
-  <div class="sl-body" id="sl-ov-body"></div>
+  <div class="ov-body" id="sl-ov-body"></div>
 </div>
 
-<!-- WA PANEL OVERLAY -->
-<div class="setlist-overlay" id="wa-overlay">
-  <div class="sl-header">
-    <button class="btn-xs" onclick="document.getElementById('wa-overlay').classList.remove('open')">← Back</button>
+<!-- EXCEL VIEW OVERLAY -->
+<div class="overlay" id="xl-overlay">
+  <div class="ov-header">
+    <button class="btn-xs" onclick="closeOverlay('xl-overlay')">← Back</button>
+    <span style="font-family:var(--head);font-size:1.1rem;letter-spacing:.06em;" id="xl-title">Spreadsheet View</span>
+    <div style="display:flex;gap:6px;margin-left:auto;">
+      <button class="btn-xs accent" onclick="saveXlAsSetlist()">💾 Save as Setlist</button>
+    </div>
+  </div>
+  <div class="ov-body" id="xl-body"></div>
+</div>
+
+<!-- WA OVERLAY -->
+<div class="overlay" id="wa-overlay">
+  <div class="ov-header">
+    <button class="btn-xs" onclick="closeOverlay('wa-overlay')">← Back</button>
     <span style="font-family:var(--head);font-size:1.1rem;letter-spacing:.06em;">📱 WHATSAPP</span>
     <button class="ai-extract-btn" id="ai-btn2" onclick="aiExtract()" style="margin-left:auto;">
-      <span class="idle">✨ Extract Todos</span>
-      <span class="spin">⟳</span>
+      <span class="idle">✨ Extract Todos</span><span class="spin">⟳</span>
     </button>
   </div>
-  <div class="sl-body">
+  <div class="ov-body">
     <div class="wa-setup">
-      <strong>How to connect your WhatsApp group:</strong><br><br>
-      1. Go to <strong>callmebot.com/whatsapp-api</strong> and get a free API key<br>
-      2. In your WhatsApp group, add <code>+34 644 59 25 94</code> as a contact<br>
-      3. Send the message: <code>I allow callmebot to send me messages</code><br>
-      4. Use a free tool like <strong>n8n.io</strong> or <strong>make.com</strong> to forward your group messages to this webhook:<br>
-      <code id="webhook-url" style="word-break:break-all;display:block;margin-top:6px;"></code><br>
-      5. Or export your WhatsApp chat (Chat → More → Export) and paste it below ↓<br>
+      <strong>Import your WhatsApp group chat:</strong><br><br>
+      On your phone: open the group → tap <strong>⋮</strong> → More → <strong>Export chat</strong> → Without Media → send to yourself → copy the text and paste below.
     </div>
     <div style="margin-top:1rem;">
-      <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:.4rem;">Paste WhatsApp export text (or messages)</div>
+      <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:.4rem;">Paste WhatsApp export</div>
       <textarea id="wa-paste" style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:.65rem;color:var(--text);font-family:var(--body);font-size:.82rem;min-height:120px;resize:vertical;" placeholder="Paste exported WhatsApp chat here…"></textarea>
       <button class="btn-xs accent" style="margin-top:.5rem;width:100%;padding:.6rem;" onclick="importWaPaste()">Import messages</button>
     </div>
     <div style="margin-top:1.25rem;">
-      <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:.5rem;">Recent WhatsApp messages</div>
+      <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:.5rem;">Recent messages</div>
       <div id="wa-msgs-list"><div class="loading">No messages yet.</div></div>
     </div>
   </div>
 </div>
 
-<!-- MODAL: ADD GIG -->
+<!-- MODALS -->
 <div class="modal-overlay" id="modal-gig">
   <div class="modal">
     <h3>Add Gig</h3>
@@ -436,7 +318,6 @@ header {
   </div>
 </div>
 
-<!-- MODAL: ADD SETLIST -->
 <div class="modal-overlay" id="modal-setlist">
   <div class="modal">
     <h3>New Setlist</h3>
@@ -448,7 +329,6 @@ header {
   </div>
 </div>
 
-<!-- MODAL: ADD SONG -->
 <div class="modal-overlay" id="modal-song">
   <div class="modal">
     <h3>Add Song</h3>
@@ -462,7 +342,6 @@ header {
   </div>
 </div>
 
-<!-- MODAL: ADD TODO -->
 <div class="modal-overlay" id="modal-todo">
   <div class="modal">
     <h3>Add Todo</h3>
@@ -477,337 +356,389 @@ header {
 </div>
 
 <script>
-let sb = null, userName = '', userRole = '', currentSlId = null, chatSub = null, todoSub = null;
-const COLS = ['#e8501e','#2e86ab','#a23b72','#f18f01','#c73e1d','#3b1f2b'];
+let sb=null,userName='',userRole='',currentSlId=null,chatSub=null;
+let xlData=[],xlHeaders=[],xlFileName='';
+const COLS=['#e8501e','#2e86ab','#a23b72','#f18f01','#c73e1d','#3b6e8c'];
+const ini=n=>n.split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2);
+const col=n=>{let h=0;for(let c of n)h=c.charCodeAt(0)+((h<<5)-h);return COLS[Math.abs(h)%COLS.length];};
+const fmt=ts=>new Date(ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+const bmap={confirmed:'b-green',pending:'b-amber',enquiry:'b-gray',cancelled:'b-red'};
+const badge=s=>`<span class="badge ${bmap[s]||'b-gray'}">${s}</span>`;
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-const ini = n => n.split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2);
-const col = n => { let h=0; for(let c of n) h=c.charCodeAt(0)+((h<<5)-h); return COLS[Math.abs(h)%COLS.length]; };
-const fmt = ts => new Date(ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-const bmap = {confirmed:'b-green',pending:'b-amber',enquiry:'b-gray',cancelled:'b-red'};
-const badge = s => `<span class="badge ${bmap[s]||'b-gray'}">${s}</span>`;
-
-// ── SETUP ────────────────────────────────────────────
-async function saveSetup() {
-  const url = document.getElementById('sb-url').value.trim();
-  const key = document.getElementById('sb-key').value.trim();
-  const band = document.getElementById('band-input').value.trim() || 'My Band';
-  const ck = document.getElementById('claude-key').value.trim();
-  if (!url||!key) { showErr('Fill in URL and key.'); return; }
-  localStorage.setItem('sb_url',url); localStorage.setItem('sb_key',key);
-  localStorage.setItem('band_name',band);
-  if (ck) localStorage.setItem('claude_key',ck);
+// ── SETUP ─────────────────────────────────────────────
+async function saveSetup(){
+  const url=document.getElementById('sb-url').value.trim();
+  const key=document.getElementById('sb-key').value.trim();
+  const band=document.getElementById('band-input').value.trim()||'My Band';
+  const ck=document.getElementById('claude-key').value.trim();
+  if(!url||!key){showErr('Fill in URL and key.');return;}
+  localStorage.setItem('sb_url',url);localStorage.setItem('sb_key',key);localStorage.setItem('band_name',band);
+  if(ck)localStorage.setItem('claude_key',ck);
   await boot(url,key,band);
 }
-function showErr(m) { const e=document.getElementById('setup-err'); e.textContent=m; e.style.display='block'; }
-
-async function boot(url,key,band) {
-  try {
-    sb = supabase.createClient(url,key);
-    const {error} = await sb.from('gigs').select('id').limit(1);
-    if (error) { showErr('Connection failed: '+error.message); return; }
+function showErr(m){const e=document.getElementById('setup-err');e.textContent=m;e.style.display='block';}
+async function boot(url,key,band){
+  try{
+    sb=supabase.createClient(url,key);
+    const{error}=await sb.from('gigs').select('id').limit(1);
+    if(error){showErr('Connection failed: '+error.message);return;}
     document.getElementById('setup-screen').style.display='none';
-    document.getElementById('hband').textContent = band.toUpperCase();
-    document.getElementById('webhook-url').textContent = url.replace('https://','https://').split('.')[0]+' → use your Supabase REST API to POST to /todos';
+    document.getElementById('hband').textContent=band.toUpperCase();
     checkName();
-  } catch(e) { showErr('Could not connect — check your URL and key.'); }
+  }catch(e){showErr('Could not connect — check your URL and key.');}
 }
-
-function checkName() {
-  userName = localStorage.getItem('user_name')||'';
-  userRole = localStorage.getItem('user_role')||'';
-  if (!userName) { document.getElementById('name-screen').style.display='flex'; }
+function checkName(){
+  userName=localStorage.getItem('user_name')||'';
+  userRole=localStorage.getItem('user_role')||'';
+  if(!userName){document.getElementById('name-screen').style.display='flex';}
   else launchApp();
 }
-
-function saveName() {
+function saveName(){
   const n=document.getElementById('uname').value.trim();
   const r=document.getElementById('urole').value.trim();
-  if (!n) return;
-  localStorage.setItem('user_name',n); localStorage.setItem('user_role',r);
-  userName=n; userRole=r;
+  if(!n)return;
+  localStorage.setItem('user_name',n);localStorage.setItem('user_role',r);
+  userName=n;userRole=r;
   document.getElementById('name-screen').style.display='none';
   launchApp();
 }
-
-function launchApp() {
-  const app = document.getElementById('app');
-  app.style.display='flex'; app.classList.add('visible');
-  const av=document.getElementById('hav');
-  av.textContent=ini(userName); av.style.background=col(userName);
+function launchApp(){
+  const app=document.getElementById('app');app.style.display='flex';app.classList.add('visible');
+  const av=document.getElementById('hav');av.textContent=ini(userName);av.style.background=col(userName);
   document.getElementById('hname').textContent=userName+(userRole?' · '+userRole:'');
-  loadGigs(); loadSetlists(); loadTodos(); initChat(); loadWaMsgs();
-  if (localStorage.getItem('claude_key')) {
-    document.querySelectorAll('.ai-extract-btn').forEach(b=>b.style.display='flex');
-  }
+  loadGigs();loadSetlists();loadTodos();initChat();loadWaMsgs();
 }
 
-// ── GIGS ─────────────────────────────────────────────
-async function loadGigs() {
-  const {data} = await sb.from('gigs').select('*').order('created_at');
+// ── GIGS ──────────────────────────────────────────────
+async function loadGigs(){
+  const{data}=await sb.from('gigs').select('*').order('created_at');
   const el=document.getElementById('gigs-list');
-  if (!data?.length) { el.innerHTML='<div class="empty">No gigs yet</div>'; return; }
-  el.innerHTML = data.map(g=>`
-    <div class="gig-row" onclick="cycleGigStatus('${g.id}','${g.status}')">
-      <div class="gig-dot" style="background:${g.status==='confirmed'?'#2ecc71':g.status==='pending'?'#f0b429':'#555'}"></div>
-      <div class="gig-info">
-        <div class="gig-venue">${g.venue}</div>
-        <div class="gig-date">${g.date}${g.time?' · '+g.time:''}</div>
+  if(!data?.length){el.innerHTML='<div class="empty">No gigs yet</div>';return;}
+  el.innerHTML=data.map(g=>`
+    <div class="gig-row">
+      <div class="gig-dot" style="background:${g.status==='confirmed'?'#2ecc71':g.status==='pending'?'#f0b429':'#555'}" onclick="cycleGigStatus('${g.id}','${g.status}')" title="Click to change status"></div>
+      <div class="gig-info" onclick="cycleGigStatus('${g.id}','${g.status}')">
+        <div class="gig-venue">${esc(g.venue)}</div>
+        <div class="gig-date">${esc(g.date)}${g.time?' · '+esc(g.time):''}</div>
       </div>
       ${badge(g.status)}
+      <button class="del-btn" onclick="deleteGig('${g.id}')" title="Delete gig">🗑</button>
     </div>`).join('');
 }
-
-async function cycleGigStatus(id,current) {
-  const cycle = {enquiry:'pending',pending:'confirmed',confirmed:'enquiry'};
+async function cycleGigStatus(id,current){
+  const cycle={enquiry:'pending',pending:'confirmed',confirmed:'enquiry'};
   await sb.from('gigs').update({status:cycle[current]||'enquiry'}).eq('id',id);
   loadGigs();
 }
-
-async function saveGig() {
-  const v=document.getElementById('g-venue').value.trim();
-  if (!v) return;
+async function deleteGig(id){
+  if(!confirm('Delete this gig?'))return;
+  await sb.from('gigs').delete().eq('id',id);
+  loadGigs();
+}
+async function saveGig(){
+  const v=document.getElementById('g-venue').value.trim();if(!v)return;
   await sb.from('gigs').insert({venue:v,date:document.getElementById('g-date').value.trim(),time:document.getElementById('g-time').value.trim(),location:document.getElementById('g-loc').value.trim(),status:document.getElementById('g-status').value,notes:document.getElementById('g-notes').value.trim()});
-  closeModal('modal-gig'); loadGigs();
+  closeModal('modal-gig');loadGigs();
 }
 
 // ── SETLISTS ──────────────────────────────────────────
-async function loadSetlists() {
-  const {data} = await sb.from('setlists').select('*,songs(id)').order('created_at');
+async function loadSetlists(){
+  const{data}=await sb.from('setlists').select('*,songs(id)').order('created_at');
   const el=document.getElementById('sl-list');
-  if (!data?.length) { el.innerHTML='<div class="empty">No setlists yet</div>'; return; }
-  el.innerHTML = data.map(sl=>`
-    <div class="sl-row" onclick="openSlOverlay('${sl.id}','${sl.name.replace(/'/g,"\\'")}')">
-      <div><div class="sl-name">${sl.name}</div><div class="sl-count">${sl.songs?.length||0} songs</div></div>
-      <span style="color:var(--muted);">→</span>
+  if(!data?.length){el.innerHTML='<div class="empty">No setlists yet</div>';return;}
+  el.innerHTML=data.map(sl=>`
+    <div class="sl-row">
+      <div class="sl-info" onclick="openSlOverlay('${sl.id}','${sl.name.replace(/'/g,"\\'")}')">
+        <div class="sl-name">${esc(sl.name)}</div>
+        <div class="sl-count">${sl.songs?.length||0} songs</div>
+      </div>
+      <div class="sl-actions">
+        <span style="color:var(--muted);cursor:pointer;" onclick="openSlOverlay('${sl.id}','${sl.name.replace(/'/g,"\\'")}')">→</span>
+        <button class="del-btn" style="opacity:1;" onclick="deleteSetlist('${sl.id}','${sl.name.replace(/'/g,"\\'")}')">🗑</button>
+      </div>
     </div>`).join('');
 }
-
-function openSlOverlay(id,name) {
+async function deleteSetlist(id,name){
+  if(!confirm(`Delete "${name}" and all its songs?`))return;
+  await sb.from('songs').delete().eq('setlist_id',id);
+  await sb.from('setlists').delete().eq('id',id);
+  loadSetlists();
+}
+function openSlOverlay(id,name){
   currentSlId=id;
   document.getElementById('sl-ov-title').textContent=name;
-  document.getElementById('sl-overlay').classList.add('open');
-  loadSongs();
+  openOverlay('sl-overlay');loadSongs();
 }
-function closeSlOverlay() { document.getElementById('sl-overlay').classList.remove('open'); currentSlId=null; loadSetlists(); }
-
-async function loadSongs() {
-  const {data} = await sb.from('songs').select('*').eq('setlist_id',currentSlId).order('position').order('created_at');
+async function loadSongs(){
+  const{data}=await sb.from('songs').select('*').eq('setlist_id',currentSlId).order('position').order('created_at');
   const el=document.getElementById('sl-ov-body');
-  if (!data?.length) { el.innerHTML='<div class="empty">No songs — add the first one!</div>'; return; }
-  const total = data.reduce((a,s)=>a+(s.duration_mins||0),0);
-  el.innerHTML = data.map((s,i)=>`
+  if(!data?.length){el.innerHTML='<div class="empty">No songs yet — add one or upload an Excel file!</div>';return;}
+  const total=data.reduce((a,s)=>a+(s.duration_mins||0),0);
+  el.innerHTML=data.map((s,i)=>`
     <div class="song-item">
       <span class="song-num">${i+1}</span>
-      <span class="song-title">${s.title}</span>
-      ${s.key?`<span class="song-key">${s.key}`:''}
+      <span class="song-title">${esc(s.title)}</span>
+      ${s.key?`<span class="song-key">${esc(s.key)}</span>`:''}
       ${s.duration_mins?`<span class="song-key">${s.duration_mins}m</span>`:''}
-      <button onclick="deleteSong('${s.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:0 4px;">✕</button>
+      <button onclick="deleteSong('${s.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:0 4px;margin-left:auto;">🗑</button>
     </div>`).join('')
-    + `<div style="padding:.75rem 0;font-size:.75rem;color:var(--muted);">${data.length} songs${total?' · ~'+Math.round(total)+' min':''}</div>`;
+    +`<div style="padding:.75rem 0;font-size:.75rem;color:var(--muted);">${data.length} songs${total?' · ~'+Math.round(total)+' min':''}</div>`;
 }
-
-async function saveSetlist() {
-  const n=document.getElementById('sl-name').value.trim(); if(!n)return;
-  await sb.from('setlists').insert({name:n});
-  closeModal('modal-setlist'); loadSetlists();
+async function saveSetlist(){
+  const n=document.getElementById('sl-name').value.trim();if(!n)return;
+  await sb.from('setlists').insert({name:n});closeModal('modal-setlist');loadSetlists();
 }
-
-async function saveSong() {
-  const t=document.getElementById('s-title').value.trim(); if(!t||!currentSlId)return;
+async function saveSong(){
+  const t=document.getElementById('s-title').value.trim();if(!t||!currentSlId)return;
   await sb.from('songs').insert({setlist_id:currentSlId,title:t,key:document.getElementById('s-key').value.trim(),duration_mins:parseFloat(document.getElementById('s-dur').value)||null});
-  closeModal('modal-song');
-  ['s-title','s-key','s-dur'].forEach(i=>document.getElementById(i).value='');
+  closeModal('modal-song');['s-title','s-key','s-dur'].forEach(i=>document.getElementById(i).value='');
   loadSongs();
 }
+async function deleteSong(id){
+  await sb.from('songs').delete().eq('id',id);loadSongs();
+}
 
-async function deleteSong(id) {
-  await sb.from('songs').delete().eq('id',id); loadSongs();
+// ── EXCEL UPLOAD ──────────────────────────────────────
+function triggerXlUpload(){document.getElementById('xl-file-input').click();}
+
+function handleXlUpload(event){
+  const file=event.target.files[0];if(!file)return;
+  xlFileName=file.name.replace(/\.[^.]+$/,'');
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'binary'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      if(!raw||raw.length<2){alert('Could not read the file — make sure it has header row + data.');return;}
+      xlHeaders=raw[0].map(h=>String(h).trim()||'Column');
+      xlData=raw.slice(1).filter(r=>r.some(c=>c!==''));
+      event.target.value='';
+      openOverlay('xl-overlay');
+      document.getElementById('xl-title').textContent=xlFileName;
+      renderXlTable();
+    }catch(err){alert('Could not read file: '+err.message);}
+  };
+  reader.readAsBinaryString(file);
+}
+
+let xlSort={col:-1,dir:1};
+let xlFilters={};
+let xlSearch='';
+
+function renderXlTable(){
+  const el=document.getElementById('xl-body');
+  if(!xlData.length){el.innerHTML='<div class="empty">No data</div>';return;}
+
+  // Filter controls
+  const filterOpts=xlHeaders.map((h,i)=>{
+    const vals=[...new Set(xlData.map(r=>String(r[i]||'')))].filter(Boolean).sort();
+    const opts=vals.map(v=>`<option value="${esc(v)}" ${xlFilters[i]===v?'selected':''}>${esc(v)}</option>`).join('');
+    return `<select onchange="setXlFilter(${i},this.value)" style="max-width:120px;">
+      <option value="">Filter: ${esc(h)}</option>${opts}</select>`;
+  }).join('');
+
+  // Apply filters + search
+  let rows=xlData;
+  Object.entries(xlFilters).forEach(([ci,val])=>{if(val)rows=rows.filter(r=>String(r[ci]||'')===val);});
+  if(xlSearch)rows=rows.filter(r=>r.some(c=>String(c||'').toLowerCase().includes(xlSearch.toLowerCase())));
+
+  // Sort
+  if(xlSort.col>=0){
+    rows=[...rows].sort((a,b)=>{
+      const av=String(a[xlSort.col]||''),bv=String(b[xlSort.col]||'');
+      const an=parseFloat(av),bn=parseFloat(bv);
+      if(!isNaN(an)&&!isNaN(bn))return(an-bn)*xlSort.dir;
+      return av.localeCompare(bv)*xlSort.dir;
+    });
+  }
+
+  // Stats
+  const numCols=xlHeaders.map((h,i)=>({h,i,vals:xlData.map(r=>parseFloat(r[i])).filter(v=>!isNaN(v))})).filter(c=>c.vals.length>0);
+  const stats=numCols.slice(0,4).map(c=>{
+    const sum=c.vals.reduce((a,b)=>a+b,0);
+    const avg=sum/c.vals.length;
+    return `<div class="xl-stat"><span>${esc(c.h)}</span><strong>∑ ${Math.round(sum*100)/100} · avg ${Math.round(avg*100)/100}</strong></div>`;
+  }).join('');
+
+  const headers=xlHeaders.map((h,i)=>`<th onclick="sortXl(${i})">${esc(h)}<span class="col-sort ${xlSort.col===i?'active':''}">${xlSort.col===i?(xlSort.dir===1?'▲':'▼'):'⇅'}</span></th>`).join('');
+  const trows=rows.map((r,ri)=>`<tr>${xlHeaders.map((_,ci)=>`<td contenteditable="true" onblur="editXlCell(${ri},${ci},this.textContent)">${esc(r[ci]||'')}</td>`).join('')}</tr>`).join('');
+
+  el.innerHTML=`
+    <div class="xl-toolbar">
+      <input placeholder="🔍 Search…" value="${esc(xlSearch)}" oninput="xlSearch=this.value;renderXlTable()" style="min-width:140px;">
+      ${filterOpts}
+      <button class="btn-xs" onclick="clearXlFilters()">Clear filters</button>
+      <span style="font-size:.75rem;color:var(--muted);margin-left:auto;">${rows.length} / ${xlData.length} rows</span>
+    </div>
+    ${stats?`<div class="xl-stats">${stats}</div>`:''}
+    <div class="tbl-wrap">
+      <table class="xl-tbl">
+        <thead><tr>${headers}</tr></thead>
+        <tbody>${trows}</tbody>
+      </table>
+    </div>
+    <div style="margin-top:.75rem;font-size:.75rem;color:var(--muted);">💡 Click any cell to edit · Click column headers to sort · Use filters to slice the data</div>`;
+}
+
+function sortXl(ci){
+  if(xlSort.col===ci)xlSort.dir*=-1;else{xlSort.col=ci;xlSort.dir=1;}
+  renderXlTable();
+}
+function setXlFilter(ci,val){xlFilters[ci]=val;renderXlTable();}
+function clearXlFilters(){xlFilters={};xlSearch='';renderXlTable();}
+function editXlCell(ri,ci,val){
+  // Find actual row in original data (accounting for filters)
+  let rows=xlData;
+  Object.entries(xlFilters).forEach(([c,v])=>{if(v)rows=rows.filter(r=>String(r[c]||'')===v);});
+  if(xlSearch)rows=rows.filter(r=>r.some(c=>String(c||'').toLowerCase().includes(xlSearch.toLowerCase())));
+  if(xlSort.col>=0){rows=[...rows].sort((a,b)=>{const av=String(a[xlSort.col]||''),bv=String(b[xlSort.col]||'');const an=parseFloat(av),bn=parseFloat(bv);if(!isNaN(an)&&!isNaN(bn))return(an-bn)*xlSort.dir;return av.localeCompare(bv)*xlSort.dir;});}
+  const origRow=rows[ri];
+  if(origRow)origRow[ci]=val;
+}
+
+async function saveXlAsSetlist(){
+  const name=xlFileName||'Imported Setlist';
+  // Try to detect title column
+  const titleIdx=xlHeaders.findIndex(h=>/title|song|name|track/i.test(h));
+  const keyIdx=xlHeaders.findIndex(h=>/key|tonality/i.test(h));
+  const durIdx=xlHeaders.findIndex(h=>/dur|min|length|time/i.test(h));
+  const col=titleIdx>=0?titleIdx:0;
+
+  const{data:sl}=await sb.from('setlists').insert({name}).select().single();
+  if(!sl){alert('Could not create setlist');return;}
+  const songs=xlData.filter(r=>r[col]).map((r,i)=>({
+    setlist_id:sl.id,
+    title:String(r[col]||'').trim(),
+    key:keyIdx>=0?String(r[keyIdx]||'').trim()||null:null,
+    duration_mins:durIdx>=0?parseFloat(r[durIdx])||null:null,
+    position:i+1
+  }));
+  if(songs.length)await sb.from('songs').insert(songs);
+  closeOverlay('xl-overlay');
+  loadSetlists();
+  alert(`✅ "${name}" created with ${songs.length} songs!`);
 }
 
 // ── TODOS ─────────────────────────────────────────────
-async function loadTodos() {
-  const {data} = await sb.from('todos').select('*').order('created_at',{ascending:false});
+async function loadTodos(){
+  const{data}=await sb.from('todos').select('*').order('created_at',{ascending:false});
   renderTodos(data||[]);
 }
-
-function renderTodos(data) {
+function renderTodos(data){
   const el=document.getElementById('todos-list');
-  if (!data.length) { el.innerHTML='<div class="empty">No todos yet</div>'; return; }
-  const open=data.filter(t=>!t.done), done=data.filter(t=>t.done);
-  const rows = [...open,...done].map(t=>`
+  if(!data.length){el.innerHTML='<div class="empty">No todos yet</div>';return;}
+  const open=data.filter(t=>!t.done),done=data.filter(t=>t.done);
+  el.innerHTML=[...open,...done].map(t=>`
     <div class="todo-row">
       <div class="todo-cb ${t.done?'done':''}" onclick="toggleTodo('${t.id}',${t.done})"></div>
       <div style="flex:1;">
-        <div class="todo-text ${t.done?'done-text':''}">${t.title}</div>
+        <div class="todo-text ${t.done?'done-text':''}">${esc(t.title)}</div>
         <div style="display:flex;gap:6px;margin-top:2px;align-items:center;">
-          ${t.assignee?`<span class="todo-meta">👤 ${t.assignee}</span>`:''}
-          ${t.due_date?`<span class="todo-meta">📅 ${t.due_date}</span>`:''}
+          ${t.assignee?`<span class="todo-meta">👤 ${esc(t.assignee)}</span>`:''}
+          ${t.due_date?`<span class="todo-meta">📅 ${esc(t.due_date)}</span>`:''}
           <span class="todo-source ${t.source==='whatsapp'?'src-wa':t.source==='ai'?'src-ai':'src-manual'}">${t.source==='whatsapp'?'WA':t.source==='ai'?'AI':'app'}</span>
         </div>
       </div>
-      <button onclick="deleteTodo('${t.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.85rem;">✕</button>
+      <button onclick="deleteTodo('${t.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.85rem;">🗑</button>
     </div>`).join('');
-  el.innerHTML = rows;
 }
-
-async function toggleTodo(id,done) {
-  await sb.from('todos').update({done:!done}).eq('id',id); loadTodos();
-}
-async function deleteTodo(id) {
-  await sb.from('todos').delete().eq('id',id); loadTodos();
-}
-async function saveTodo() {
-  const t=document.getElementById('t-title').value.trim(); if(!t)return;
+async function toggleTodo(id,done){await sb.from('todos').update({done:!done}).eq('id',id);loadTodos();}
+async function deleteTodo(id){await sb.from('todos').delete().eq('id',id);loadTodos();}
+async function saveTodo(){
+  const t=document.getElementById('t-title').value.trim();if(!t)return;
   await sb.from('todos').insert({title:t,assignee:document.getElementById('t-assign').value.trim(),due_date:document.getElementById('t-due').value.trim(),source:'manual'});
-  closeModal('modal-todo');
-  ['t-title','t-assign','t-due'].forEach(i=>document.getElementById(i).value='');
+  closeModal('modal-todo');['t-title','t-assign','t-due'].forEach(i=>document.getElementById(i).value='');
   loadTodos();
 }
 
-// Subscribe to real-time todos
-async function subTodos() {
-  sb.channel('todos').on('postgres_changes',{event:'*',schema:'public',table:'todos'},()=>loadTodos()).subscribe();
-}
-
 // ── AI EXTRACT ────────────────────────────────────────
-async function aiExtract() {
-  const ck = localStorage.getItem('claude_key');
-  if (!ck) { alert('Add your Claude API key in setup to use AI extraction.'); return; }
-  const {data:msgs} = await sb.from('wa_messages').select('*').eq('processed',false).limit(30);
-  if (!msgs?.length) { alert('No unprocessed WhatsApp messages to analyse.'); return; }
-  const btn=document.getElementById('ai-btn');
-  const btn2=document.getElementById('ai-btn2');
-  [btn,btn2].forEach(b=>{ if(b){ b.classList.add('loading'); b.disabled=true; }});
-
-  const text = msgs.map(m=>`${m.sender}: ${m.content}`).join('\n');
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':ck,'anthropic-version':'2023-06-01'},
-      body: JSON.stringify({
-        model:'claude-opus-4-5',
-        max_tokens:1000,
-        messages:[{role:'user',content:`You are a band manager assistant. Read these WhatsApp messages and extract any action items, tasks, or todos that the band needs to do. Return ONLY a JSON array like: [{"title":"task text","assignee":"name or empty string","due_date":"date or empty string"}]. If no tasks found return []. Messages:\n\n${text}`}]
-      })
-    });
-    const d = await res.json();
-    const raw = d.content?.[0]?.text||'[]';
-    const clean = raw.replace(/```json|```/g,'').trim();
-    const todos = JSON.parse(clean);
-    if (todos.length) {
-      for (const t of todos) {
-        await sb.from('todos').insert({title:t.title,assignee:t.assignee||null,due_date:t.due_date||null,source:'ai'});
-      }
-      // mark messages processed
-      const ids = msgs.map(m=>m.id);
-      await sb.from('wa_messages').update({processed:true}).in('id',ids);
-      loadTodos();
-      alert(`✨ Found ${todos.length} todo${todos.length>1?'s':''} from your WhatsApp messages!`);
-    } else {
-      alert('No action items found in the messages.');
+async function aiExtract(){
+  const ck=localStorage.getItem('claude_key');
+  const{data:msgs}=await sb.from('wa_messages').select('*').eq('processed',false).limit(50);
+  if(!msgs?.length){alert('No WhatsApp messages to analyse yet.\nPaste a WhatsApp export first using the 📱 WhatsApp button.');return;}
+  const btns=[document.getElementById('ai-btn'),document.getElementById('ai-btn2')];
+  btns.forEach(b=>{if(b){b.classList.add('loading');b.disabled=true;}});
+  const text=msgs.map(m=>`${m.sender}: ${m.content}`).join('\n');
+  const ids=msgs.map(m=>m.id);
+  try{
+    if(ck){
+      const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':ck,'anthropic-version':'2023-06-01'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:`You are a band manager. Extract action items from these WhatsApp messages. Return ONLY a JSON array: [{"title":"task","assignee":"name or empty","due_date":"date or empty"}]. If none, return []. Messages:\n\n${text}`}]})});
+      const d=await res.json();
+      const todos=JSON.parse((d.content?.[0]?.text||'[]').replace(/```json|```/g,'').trim());
+      if(todos.length){for(const t of todos)await sb.from('todos').insert({title:t.title,assignee:t.assignee||null,due_date:t.due_date||null,source:'ai'});await sb.from('wa_messages').update({processed:true}).in('id',ids);loadTodos();alert(`✨ AI found ${todos.length} todo${todos.length>1?'s':''}!`);}
+      else alert('No action items found.');
+    }else{
+      const pattern=/\b(can (someone|anybody|you|we)|someone (needs? to|should)|we need to|we should|don'?t forget|remember to|make sure|book|confirm|call|email|contact|sort out|organise|organize|bring|pick up|buy|check|chase|remind|pay|print|send|arrange)\b/i;
+      const found=[];
+      for(const m of msgs){const txt=m.content.trim();if(txt.length>=8&&pattern.test(txt))found.push({title:txt.slice(0,120),assignee:null,due_date:null,source:'ai'});}
+      if(found.length){for(const t of found)await sb.from('todos').insert(t);await sb.from('wa_messages').update({processed:true}).in('id',ids);loadTodos();alert(`✨ Found ${found.length} possible todo${found.length>1?'s':''}!\nAdd a Claude API key for smarter extraction.`);}
+      else{await sb.from('wa_messages').update({processed:true}).in('id',ids);alert('No obvious action items found.\nAdd a Claude API key for smarter extraction.');}
     }
-  } catch(e) {
-    alert('AI extraction failed: '+e.message);
-  } finally {
-    [btn,btn2].forEach(b=>{ if(b){ b.classList.remove('loading'); b.disabled=false; }});
-  }
+  }catch(e){alert('Extraction failed: '+e.message);}
+  finally{btns.forEach(b=>{if(b){b.classList.remove('loading');b.disabled=false;}});}
 }
 
 // ── WHATSAPP ──────────────────────────────────────────
-function openWaPanel() {
-  document.getElementById('wa-overlay').classList.add('open');
-  loadWaMsgs();
-}
-
-async function loadWaMsgs() {
-  const {data} = await sb.from('wa_messages').select('*').order('created_at',{ascending:false}).limit(40);
+async function loadWaMsgs(){
+  const{data}=await sb.from('wa_messages').select('*').order('created_at',{ascending:false}).limit(40);
   const el=document.getElementById('wa-msgs-list');
-  if (!data?.length) { el.innerHTML='<div class="empty">No WhatsApp messages yet.<br>Paste an export below to get started.</div>'; return; }
-  el.innerHTML = data.map(m=>`
-    <div class="wa-msg-row">
-      <div class="wa-from">${m.sender}</div>
-      <div class="wa-text">${m.content}</div>
-    </div>`).join('');
-  document.getElementById('wa-badge').style.display='inline-block';
+  if(!data?.length){el.innerHTML='<div class="empty">No messages yet. Paste an export above.</div>';return;}
+  el.innerHTML=data.map(m=>`<div class="wa-msg-row"><div class="wa-from">${esc(m.sender)}</div><div style="color:var(--text);font-size:.82rem;line-height:1.4;">${esc(m.content)}</div></div>`).join('');
 }
-
-async function importWaPaste() {
-  const text = document.getElementById('wa-paste').value.trim();
-  if (!text) return;
-  // Parse WhatsApp export format: [DD/MM/YYYY, HH:MM] Name: Message
-  // Also handle plain "Name: message" lines
-  const lines = text.split('\n').filter(l=>l.trim());
-  const parsed = [];
-  for (const line of lines) {
-    // WhatsApp export format
-    const waMatch = line.match(/\[?(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}),?\s*\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM)?\]?\s*[-–]?\s*([^:]+):\s*(.*)/i);
-    if (waMatch) {
-      parsed.push({sender:waMatch[2].trim(),content:waMatch[3].trim(),wa_timestamp:waMatch[1]});
-      continue;
-    }
-    // Simple "Name: message"
-    const simpleMatch = line.match(/^([A-Za-z][^:]{1,30}):\s*(.+)/);
-    if (simpleMatch && !line.startsWith('http')) {
-      parsed.push({sender:simpleMatch[1].trim(),content:simpleMatch[2].trim(),wa_timestamp:null});
-    }
+async function importWaPaste(){
+  const text=document.getElementById('wa-paste').value.trim();if(!text)return;
+  const lines=text.split('\n').filter(l=>l.trim());
+  const parsed=[];
+  for(const line of lines){
+    const waMatch=line.match(/\[?(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}),?\s*\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM)?\]?\s*[-–]?\s*([^:]+):\s*(.*)/i);
+    if(waMatch){parsed.push({sender:waMatch[2].trim(),content:waMatch[3].trim(),wa_timestamp:waMatch[1]});continue;}
+    const simple=line.match(/^([A-Za-z][^:]{1,30}):\s*(.+)/);
+    if(simple&&!line.startsWith('http'))parsed.push({sender:simple[1].trim(),content:simple[2].trim(),wa_timestamp:null});
   }
-  if (!parsed.length) { alert('No messages found — try copying more of the chat export.'); return; }
-  const {error} = await sb.from('wa_messages').insert(parsed);
-  if (error) { alert('Import failed: '+error.message); return; }
+  if(!parsed.length){alert('No messages found — try copying more of the chat export.');return;}
+  const{error}=await sb.from('wa_messages').insert(parsed);
+  if(error){alert('Import failed: '+error.message);return;}
   document.getElementById('wa-paste').value='';
-  alert(`Imported ${parsed.length} messages! Hit "Extract Todos" to find action items.`);
+  alert(`Imported ${parsed.length} messages!`);
   loadWaMsgs();
 }
 
 // ── CHAT ──────────────────────────────────────────────
-async function initChat() {
+async function initChat(){
   await loadMsgs();
-  if (chatSub) return;
-  chatSub = sb.channel('chat_realtime')
-    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'},p=>appendMsg(p.new))
-    .subscribe();
+  if(chatSub)return;
+  chatSub=sb.channel('chat_rt').on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'},p=>appendMsg(p.new)).subscribe();
 }
-
-async function loadMsgs() {
-  const {data} = await sb.from('messages').select('*').order('created_at',{ascending:true}).limit(80);
-  const el=document.getElementById('chat-msgs'); el.innerHTML='';
-  (data||[]).forEach(m=>appendMsg(m,false));
-  el.scrollTop=el.scrollHeight;
+async function loadMsgs(){
+  const{data}=await sb.from('messages').select('*').order('created_at',{ascending:true}).limit(80);
+  const el=document.getElementById('chat-msgs');el.innerHTML='';
+  (data||[]).forEach(m=>appendMsg(m,false));el.scrollTop=el.scrollHeight;
 }
-
-function appendMsg(m,scroll=true) {
+function appendMsg(m,scroll=true){
   const el=document.getElementById('chat-msgs');
-  const mine=m.sender===userName;
-  const c=col(m.sender);
-  const div=document.createElement('div');
-  div.className='msg-item'+(mine?' mine':'');
-  div.innerHTML=`
-    <div class="msg-av-sm" style="background:${c}30;color:${c};">${ini(m.sender)}</div>
-    <div>
-      <div class="msg-sender-name">${mine?'':m.sender}${m.source==='whatsapp'?' 📱':''}</div>
-      <div class="bubble ${m.source==='whatsapp'?'bubble-wa':''}">${m.content}</div>
-      <div class="msg-time-sm">${fmt(m.created_at)}</div>
-    </div>`;
-  el.appendChild(div);
-  if (scroll) el.scrollTop=el.scrollHeight;
+  const mine=m.sender===userName;const c=col(m.sender);
+  const div=document.createElement('div');div.className='msg-item'+(mine?' mine':'');
+  div.innerHTML=`<div class="msg-av-sm" style="background:${c}30;color:${c};">${ini(m.sender)}</div><div><div class="msg-sender-name">${mine?'':esc(m.sender)}</div><div class="bubble">${esc(m.content)}</div><div class="msg-time-sm">${fmt(m.created_at)}</div></div>`;
+  el.appendChild(div);if(scroll)el.scrollTop=el.scrollHeight;
+}
+async function sendMsg(){
+  const inp=document.getElementById('chat-in');const content=inp.value.trim();if(!content)return;
+  inp.value='';await sb.from('messages').insert({sender:userName,content,source:'app'});
 }
 
-async function sendMsg() {
-  const inp=document.getElementById('chat-in');
-  const content=inp.value.trim(); if(!content)return;
-  inp.value='';
-  await sb.from('messages').insert({sender:userName,content,source:'app'});
-}
-
-// ── MODALS ────────────────────────────────────────────
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+// ── OVERLAYS & MODALS ─────────────────────────────────
+function openOverlay(id){document.getElementById(id).classList.add('open');if(id==='wa-overlay')loadWaMsgs();}
+function closeOverlay(id){document.getElementById(id).classList.remove('open');if(id==='sl-overlay'){currentSlId=null;loadSetlists();}}
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
 
 // ── BOOT ──────────────────────────────────────────────
-(function() {
-  const url=localStorage.getItem('sb_url'), key=localStorage.getItem('sb_key'), band=localStorage.getItem('band_name')||'My Band';
-  if (url&&key) { document.getElementById('setup-screen').style.display='none'; boot(url,key,band); }
+(function(){
+  const url=localStorage.getItem('sb_url'),key=localStorage.getItem('sb_key'),band=localStorage.getItem('band_name')||'My Band';
+  if(url&&key){document.getElementById('setup-screen').style.display='none';boot(url,key,band);}
 })();
 </script>
 </body>
