@@ -653,31 +653,148 @@ async function saveTodo(){
   loadTodos();
 }
 
-// ── AI EXTRACT ────────────────────────────────────────
+// ── AI BAND AGENT ─────────────────────────────────────
+// Understands free-form commands AND passively extracts todos + gigs from chat
+
 async function aiExtract(){
   const ck=localStorage.getItem('claude_key');
-  const{data:msgs}=await sb.from('wa_messages').select('*').eq('processed',false).limit(50);
+  const{data:msgs}=await sb.from('wa_messages').select('*').eq('processed',false).limit(60);
   if(!msgs?.length){alert('No WhatsApp messages to analyse yet.\nPaste a WhatsApp export first using the 📱 WhatsApp button.');return;}
   const btns=[document.getElementById('ai-btn'),document.getElementById('ai-btn2')];
   btns.forEach(b=>{if(b){b.classList.add('loading');b.disabled=true;}});
-  const text=msgs.map(m=>`${m.sender}: ${m.content}`).join('\n');
   const ids=msgs.map(m=>m.id);
+
   try{
     if(ck){
-      const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':ck,'anthropic-version':'2023-06-01'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:`You are a band manager. Extract action items from these WhatsApp messages. Return ONLY a JSON array: [{"title":"task","assignee":"name or empty","due_date":"date or empty"}]. If none, return []. Messages:\n\n${text}`}]})});
-      const d=await res.json();
-      const todos=JSON.parse((d.content?.[0]?.text||'[]').replace(/```json|```/g,'').trim());
-      if(todos.length){for(const t of todos)await sb.from('todos').insert({title:t.title,assignee:t.assignee||null,due_date:t.due_date||null,source:'ai'});await sb.from('wa_messages').update({processed:true}).in('id',ids);loadTodos();alert(`✨ AI found ${todos.length} todo${todos.length>1?'s':''}!`);}
-      else alert('No action items found.');
-    }else{
-      const pattern=/\b(can (someone|anybody|you|we)|someone (needs? to|should)|we need to|we should|don'?t forget|remember to|make sure|book|confirm|call|email|contact|sort out|organise|organize|bring|pick up|buy|check|chase|remind|pay|print|send|arrange)\b/i;
-      const found=[];
-      for(const m of msgs){const txt=m.content.trim();if(txt.length>=8&&pattern.test(txt))found.push({title:txt.slice(0,120),assignee:null,due_date:null,source:'ai'});}
-      if(found.length){for(const t of found)await sb.from('todos').insert(t);await sb.from('wa_messages').update({processed:true}).in('id',ids);loadTodos();alert(`✨ Found ${found.length} possible todo${found.length>1?'s':''}!\nAdd a Claude API key for smarter extraction.`);}
-      else{await sb.from('wa_messages').update({processed:true}).in('id',ids);alert('No obvious action items found.\nAdd a Claude API key for smarter extraction.');}
+      await smartAgentExtract(msgs, ids, ck);
+    } else {
+      await keywordExtract(msgs, ids);
     }
   }catch(e){alert('Extraction failed: '+e.message);}
   finally{btns.forEach(b=>{if(b){b.classList.remove('loading');b.disabled=false;}});}
+}
+
+async function smartAgentExtract(msgs, ids, ck){
+  const text = msgs.map(m=>`[${m.sender}]: ${m.content}`).join('\n');
+  const today = new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  const prompt = `You are a smart band manager assistant reading a WhatsApp group chat. Today is ${today}.
+
+Analyse every message and extract THREE types of things:
+
+1. EXPLICIT COMMANDS — anyone directly asking to create something, e.g:
+   - "create gig at The Barfly on 5th July at 8pm"
+   - "add todo: book the van"
+   - "create gig on Saturday at The Half Moon"
+   - "remind everyone to bring cables"
+   - "add a gig for next Friday at The Dublin Castle 9pm"
+   - Any message that sounds like a direct instruction to add something
+
+2. IMPLICIT TODOS — action items, tasks, things someone needs to do, even if not phrased as a command:
+   - "we need to sort the setlist before Thursday"
+   - "can someone call the venue about parking?"
+   - "don't forget we need a sound check at 6"
+   - "Jake can you bring the spare snare"
+
+3. IMPLICIT GIGS — mentions of gigs, shows, or bookings being discussed:
+   - "we've got a show at The Bull on the 12th"
+   - "just confirmed The Windmill for Aug 3rd"
+   - "the venue want us back on 20th September"
+
+Return ONLY valid JSON in this exact format, no other text:
+{
+  "todos": [
+    {"title": "task description", "assignee": "name or empty string", "due_date": "date string or empty string"}
+  ],
+  "gigs": [
+    {"venue": "venue name", "date": "date string", "time": "time string or empty", "status": "confirmed or pending or enquiry", "notes": "any extra info or empty"}
+  ],
+  "summary": "One sentence describing what you found"
+}
+
+If nothing found for a category, return an empty array for it.
+Be generous — if something sounds like it could be a todo or gig, include it.
+For gigs, try to extract the venue name and date clearly. Status is "confirmed" if they say confirmed/booked, "pending" if they say maybe/probably, "enquiry" otherwise.
+
+Messages:
+${text}`;
+
+  const res = await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':ck,'anthropic-version':'2023-06-01'},
+    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,messages:[{role:'user',content:prompt}]})
+  });
+  const d = await res.json();
+  if(d.error){alert('Claude API error: '+d.error.message);return;}
+
+  let result;
+  try{
+    const raw=(d.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim();
+    result=JSON.parse(raw);
+  }catch(e){
+    alert('Could not parse AI response. Try again.');return;
+  }
+
+  const todos=result.todos||[];
+  const gigs=result.gigs||[];
+  let summary=result.summary||'';
+  let created=[];
+
+  // Save todos
+  for(const t of todos){
+    if(!t.title?.trim())continue;
+    await sb.from('todos').insert({title:t.title.trim(),assignee:t.assignee||null,due_date:t.due_date||null,source:'ai'});
+    created.push('✅ Todo: '+t.title);
+  }
+
+  // Save gigs
+  for(const g of gigs){
+    if(!g.venue?.trim())continue;
+    await sb.from('gigs').insert({venue:g.venue.trim(),date:g.date||'',time:g.time||'',status:g.status||'enquiry',notes:g.notes||''});
+    created.push('🎤 Gig: '+g.venue+(g.date?' on '+g.date:''));
+  }
+
+  // Mark processed
+  await sb.from('wa_messages').update({processed:true}).in('id',ids);
+
+  // Reload everything
+  if(todos.length)loadTodos();
+  if(gigs.length)loadGigs();
+
+  if(created.length){
+    alert(`✨ Band agent found ${created.length} item${created.length>1?'s':''}:\n\n${created.join('\n')}\n\n${summary}`);
+  } else {
+    alert(`Scanned ${msgs.length} messages — nothing new to add.\n\n${summary||'No todos, gigs or commands detected.'}`);
+  }
+}
+
+async function keywordExtract(msgs, ids){
+  // Keyword fallback — no API key needed
+  // Gig patterns
+  const gigPattern=/\b(gig|show|concert|performance|booked|playing|confirmed).{0,60}(at|@|in)\s+([A-Z][^,.\n]{3,40})|create gig|add gig/i;
+  const todoPattern=/\b(can (someone|anybody|you|we)|we need to|we should|don'?t forget|remember to|make sure|book|confirm|call|email|contact|sort out|organise|organize|bring|pick up|buy|check|chase|remind|pay|print|send|arrange|add todo|create todo)\b/i;
+  const found=[];const gigFound=[];
+  for(const m of msgs){
+    const txt=m.content.trim();
+    if(txt.length<6)continue;
+    // explicit "create gig" or "add gig"
+    if(/\b(create|add)\s+gig\b/i.test(txt)){
+      gigFound.push({venue:txt.replace(/.*?(create|add)\s+gig\s*(at|on|@)?\s*/i,'').slice(0,80),date:'',time:'',status:'enquiry',notes:txt});
+    } else if(todoPattern.test(txt)){
+      found.push({title:txt.slice(0,120),assignee:null,due_date:null,source:'ai'});
+    }
+  }
+  let created=[];
+  for(const t of found){await sb.from('todos').insert(t);created.push('✅ Todo: '+t.title.slice(0,50));}
+  for(const g of gigFound){await sb.from('gigs').insert(g);created.push('🎤 Gig: '+g.venue);}
+  await sb.from('wa_messages').update({processed:true}).in('id',ids);
+  if(found.length)loadTodos();
+  if(gigFound.length)loadGigs();
+  if(created.length){
+    alert(`Found ${created.length} item${created.length>1?'s':''}:\n\n${created.join('\n')}\n\nAdd a Claude API key for much smarter detection!`);
+  } else {
+    alert('No obvious items found.\nAdd a Claude API key in setup for smart AI extraction — it understands natural language.');
+  }
 }
 
 // ── WHATSAPP ──────────────────────────────────────────
