@@ -169,7 +169,7 @@ table.xl-tbl td[contenteditable=true]:focus{outline:1px solid var(--accent);bord
     <label>Supabase URL</label><input id="sb-url" placeholder="https://xxxx.supabase.co">
     <label>Supabase Anon Key</label><input id="sb-key" placeholder="eyJhbGc...">
     <label>Band Name</label><input id="band-input" placeholder="The Rusty Hammers">
-    <label>Claude API Key (optional — for smarter todo extraction)</label><input id="claude-key" placeholder="sk-ant-...">
+
     <button class="btn-primary" onclick="saveSetup()">Launch →</button>
     <div class="err" id="setup-err"></div>
   </div>
@@ -374,7 +374,6 @@ async function saveSetup(){
   const ck=document.getElementById('claude-key').value.trim();
   if(!url||!key){showErr('Fill in URL and key.');return;}
   localStorage.setItem('sb_url',url);localStorage.setItem('sb_key',key);localStorage.setItem('band_name',band);
-  if(ck)localStorage.setItem('claude_key',ck);
   await boot(url,key,band);
 }
 function showErr(m){const e=document.getElementById('setup-err');e.textContent=m;e.style.display='block';}
@@ -385,6 +384,9 @@ async function boot(url,key,band){
     if(error){showErr('Connection failed: '+error.message);return;}
     document.getElementById('setup-screen').style.display='none';
     document.getElementById('hband').textContent=band.toUpperCase();
+    // Load Claude key from Supabase settings — works for everyone automatically
+    const{data:setting}=await sb.from('settings').select('value').eq('key','claude_key').single();
+    if(setting?.value)localStorage.setItem('claude_key',setting.value);
     checkName();
   }catch(e){showErr('Could not connect — check your URL and key.');}
 }
